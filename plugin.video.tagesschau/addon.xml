@@ -2,7 +2,7 @@
 <addon
   id="plugin.video.tagesschau"
   version="0.1.0"
-  name="Tagesschau (German News)"
+  name="Tagesschau"
   provider-name="nevermore">
   <requires>
     <import addon="xbmc.python" version="1.0"/>
@@ -14,8 +14,8 @@
     </extension>
     <extension point="xbmc.addon.metadata">
         <platform>all</platform>
-        <summary>Tagesschau (German News)</summary>
+        <summary>Tagesschau</summary>
         <description>Watch 'Tagesschau' and 'Tagesschau in 100 Sekunden'</description>
-        <disclaimer>this is a disclaimer TODO</disclaimer>
+        <disclaimer>Videos from tagesschau.de</disclaimer>
     </extension>
 </addon>
