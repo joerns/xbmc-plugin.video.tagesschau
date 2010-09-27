@@ -1,3 +1,19 @@
+# Copyright 2010 Jörn Schumacher 
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
 import urllib2, re
 
 import xbmcplugin, xbmcgui
@@ -53,7 +69,7 @@ date, url = video_file('ts20h')
 addLink('Tagesschau ('+date+')', url, 'http://www.tagesschau.de/image/podcast/ts-140.jpg')
 
 date, url = video_file('ts100s')
-addLink('Tagesschau in 100sek ('+date+')', url, 'http://www.tagesschau.de/image/podcast/ts100s-140.jpg')
+addLink('Tagesschau in 100 Sekunden ('+date+')', url, 'http://www.tagesschau.de/image/podcast/ts100s-140.jpg')
 
 
 xbmcplugin.endOfDirectory(int(sys.argv[1]))
