@@ -15,7 +15,13 @@
     <extension point="xbmc.addon.metadata">
         <platform>all</platform>
         <summary>Tagesschau</summary>
-        <description>Watch 'Tagesschau' and 'Tagesschau in 100 Sekunden'</description>
+	<summary lang="de">Tagesschau</summary>
+        <description>
+	  Watch 'Tagesschau' and 'Tagesschau in 100 Sekunden'
+	</description>
+	<description lang="de">
+	  Die Tagesschau und die Tagesschau in 100 Sekunden
+	</description>
         <disclaimer>Videos from tagesschau.de</disclaimer>
     </extension>
 </addon>
