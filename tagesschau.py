@@ -39,23 +39,6 @@ regexp['ts20h']['date'] = r'<title>tagesschau (.*)</title>'
 regexp['ts20h']['url'] = r'<enclosure url="(.*)"\slength.*'
 
 
-def video_file(name):
-    s = urllib2.urlopen(urls[name]).read()
-
-    # the _first_ item group
-    item = re.compile(r'<item>(?:.*\s)*</item>').findall(s)[0]
-
-    # date
-    date = re.compile(regexp[name]['date']).findall(item)[0]
-    if name == 'ts100s':
-        date = re.split('\s',date, 1)
-        date[0],date[1] = date[1],date[0]
-        date = ', '.join(date)
-
-    # url
-    url = re.compile(regexp[name]['url']).findall(item)[0]
- 
-    return date, url
 
 def get_video_ts100s():
     # config
