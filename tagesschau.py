@@ -57,6 +57,40 @@ def video_file(name):
  
     return date, url
 
+def get_video_ts100s():
+    # config
+    url = 'http://www.tagesschau.de/multimedia/video/ondemand100.html'
+    pattern = r'<a href="(.*\.webl\.h264\.mp4)">.*</a>'
+    date_pattern = r'<span class="topline">(\S*)\s*(\S*)\s*Uhr</span>'
+
+    # parse the website
+    s = urllib2.urlopen(url).read()
+    video = re.compile(pattern).findall(s)[0]
+
+    # fetch the date from the website
+    date = re.compile(date_pattern).findall(s)[0]
+    date = date[0]+', '+date[1]+' Uhr'
+
+    # return video+date
+    return date, video
+
+def get_video_ts20h():
+    # config
+    url = 'http://www.tagesschau.de/multimedia/video/ondemandarchiv100.html'
+    pattern = r'<a href="(.*\.webl\.h264\.mp4)">.*</a>'
+    date_pattern = r'TV-(\d\d\d\d)(\d\d)(\d\d)'
+
+    # parse the website
+    s = urllib2.urlopen(url).read()
+    video = re.compile(pattern).findall(s)[0]
+
+    # fetch the date from the video url
+    date = re.compile(date_pattern).findall(video)[0]
+    date = '.'.join((date[2], date[1], date[0])) + ', 20:00 Uhr'
+
+    # return video+date
+    return date, video
+
 def addLink(name,url,iconimage):
         ok=True
         liz=xbmcgui.ListItem(name, iconImage="DefaultVideo.png", thumbnailImage=iconimage)
@@ -66,11 +100,10 @@ def addLink(name,url,iconimage):
 
 items = []
 
-date, url = video_file('ts20h')
+date, url = get_video_ts20h()
 addLink('Tagesschau ('+date+')', url, 'http://www.tagesschau.de/image/podcast/ts-140.jpg')
 
-date, url = video_file('ts100s')
+date, url = get_video_ts100s()
 addLink('Tagesschau in 100 Sekunden ('+date+')', url, 'http://www.tagesschau.de/image/podcast/ts100s-140.jpg')
-
 
 xbmcplugin.endOfDirectory(int(sys.argv[1]))
