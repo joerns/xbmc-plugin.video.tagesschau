@@ -17,7 +17,7 @@
 
 import urllib2, datetime
 
-import xbmcplugin, xbmcgui
+import xbmcplugin, xbmcgui, xbmcaddon
 
 import parserss
 
@@ -49,14 +49,13 @@ podcast_config = {
 # ------------------------------------------------------------
 
 # -- Settings -----------------------------------------------
-# TODO: This should be configurabe in a settings dialog
+settings = xbmcaddon.Addon(id='plugin.video.tagesschau')
+quality_id = settings.getSetting("quality")
+quality = ['M', 'L'][int(quality_id)]
 
 # change order here or remove elements if you like
 podcasts = ("tagesschau", "tagesschau100", "tagesthemen", "nachtmagazin", 
             "berichtausberlin", "wochenspiegel", "deppendorfswoche", "tagesschauvor20jahren")
-
-# Quality
-quality = "L"
 
 # Time format
 datetimeformat = "%a %d. %B %Y, %H:%M"
