@@ -31,6 +31,8 @@ podcast_config = {
     "tagesthemen": { "url": { "M": "http://www.tagesschau.de/export/video-podcast/webm/tagesthemen",
                             "L": "http://www.tagesschau.de/export/video-podcast/webl/tagesthemen" },
                      "name": "Tagesthemen" },
+    "tageswebschau": { "url": { "M": "http://www.tagesschau.de/export/video-podcast/webm/tageswebschau" },
+                       "name": "tagesWEBschau" }, 
     "nachtmagazin": { "url": { "M": "http://www.tagesschau.de/export/video-podcast/webm/nachtmagazin",
                                "L": "http://www.tagesschau.de/export/video-podcast/webl/nachtmagazin" },
                       "name": "Nachtmagazin" },
@@ -54,7 +56,7 @@ quality_id = settings.getSetting("quality")
 quality = ['M', 'L'][int(quality_id)]
 
 # change order here or remove elements if you like
-podcasts = ("tagesschau", "tagesschau100", "tagesthemen", "nachtmagazin", 
+podcasts = ("tagesschau", "tagesschau100", "tagesthemen", "tageswebschau", "nachtmagazin", 
             "berichtausberlin", "wochenspiegel", "deppendorfswoche", "tagesschauvor20jahren")
 
 # Time format
