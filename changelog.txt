@@ -1,5 +1,7 @@
 version 0.3.0
  * Added a "preferred quality" setting
+ * Added "tagesWEBschau" podcast
+ * Added descriptions to the videos
 
 version 0.2.0
  * this release fixes the broken scraper

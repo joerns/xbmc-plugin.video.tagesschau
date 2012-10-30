@@ -92,10 +92,10 @@ def getName(podcast, item):
 
     return item["title"]
 
-def addLink(name, url, iconimage):
+def addLink(name, url, iconimage, description):
         ok = True
         liz = xbmcgui.ListItem(name, iconImage="DefaultVideo.png", thumbnailImage=iconimage)
-        liz.setInfo(type="Video", infoLabels={ "Title": name } )
+        liz.setInfo(type="Video", infoLabels={ "Title": name, "Plot": description } )
         ok = xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=url, listitem=liz)
         return ok
 
@@ -103,6 +103,6 @@ for podcast in podcasts:
     feed = parserss.parserss(getUrl(podcast, quality))
     if len(feed["items"]) > 0:
         item = feed["items"][0]
-        addLink(getName(podcast, item), item["media"]["url"], feed["image"])
+        addLink(getName(podcast, item), item["media"]["url"], feed["image"], item.get("description", ""))
 
 xbmcplugin.endOfDirectory(int(sys.argv[1]))
