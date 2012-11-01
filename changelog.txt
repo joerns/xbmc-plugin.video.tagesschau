@@ -1,3 +1,6 @@
+version 0.3.0 
+ * Added language tag
+
 version 0.3.0
  * Added a "preferred quality" setting
  * Added "tagesWEBschau" podcast
