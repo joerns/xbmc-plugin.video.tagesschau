@@ -15,7 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import urllib2, datetime
+import sys, datetime
 
 import xbmcplugin, xbmcgui, xbmcaddon
 
@@ -55,6 +55,7 @@ settings = xbmcaddon.Addon(id='plugin.video.tagesschau')
 quality_id = settings.getSetting("quality")
 quality = ['M', 'L'][int(quality_id)]
 
+
 # change order here or remove elements if you like
 podcasts = ("tagesschau", "tagesschau100", "tagesthemen", "tageswebschau", "nachtmagazin", 
             "berichtausberlin", "wochenspiegel", "deppendorfswoche", "tagesschauvor20jahren")
@@ -93,7 +94,6 @@ def getName(podcast, item):
     return item["title"]
 
 def addLink(name, url, iconimage, description):
-        ok = True
         liz = xbmcgui.ListItem(name, iconImage="DefaultVideo.png", thumbnailImage=iconimage)
         liz.setInfo(type="Video", infoLabels={ "Title": name, "Plot": description } )
         ok = xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=url, listitem=liz)
