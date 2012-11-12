@@ -34,9 +34,10 @@ class VideoContent(object):
         
     # String representation for testing/development
     def __str__(self):
-        return "VideoContent(title='" + self.title + "', timestamp='" + self.timestamp + "', "\
+        s = "VideoContent(title='" + self.title + "', timestamp='" + self.timestamp + "', "\
             "duration=" + str(self.duration) + ", videourl=" + str(self.video_url()) + ", "\
             "imageurl=" + str(self.image_url()) + ")"
+        return s.encode('utf-8', 'ignore')
 
 # parses the video JSON into VideoContent
 def _parse_video(jsonvideo):
