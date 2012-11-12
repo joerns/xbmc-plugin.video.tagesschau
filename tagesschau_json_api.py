@@ -25,7 +25,7 @@ class VideoContent(object):
             imageurl=self.imageurls["mittel16x9"]
         # fallback for Wetter
         except KeyError:
-            imageurl=self.imageurls["grossgallerie16x9"]
+            imageurl=self.imageurls["grossgalerie16x9"]
         return imageurl
         
     # String representation for testing/development
@@ -35,44 +35,66 @@ class VideoContent(object):
             "imageurl=" + str(self.image_url()) + ")"
 
 # converts the video JSON into VideoContent
-def to_video(jsonvideo):
+def parse_video(jsonvideo):
     title = jsonvideo["headline"]
     # TODO: parse into datetime
     timestamp = jsonvideo["broadcastDate"]
     # calculate duration using outMilli and inMilli, duration is not set in JSON
     duration = (jsonvideo["outMilli"] - jsonvideo["inMilli"]) / 1000
-    imageurls = to_image_urls(jsonvideo["images"][0]["variants"])
-    videourls = to_video_urls(jsonvideo["mediadata"])
+    imageurls = parse_image_urls(jsonvideo["images"][0]["variants"])
+    videourls = parse_video_urls(jsonvideo["mediadata"])
     video = VideoContent(title, timestamp, duration, videourls, imageurls);       
     return video
 
-# converts the image variants JSON into a dict mapping name to url 
-def to_image_urls(jsonvariants):
+# parses the image variants JSON into a dict mapping name to url 
+def parse_image_urls(jsonvariants):
     variants = {}
     for jsonvariant in jsonvariants:
         for name, url in jsonvariant.iteritems():
             variants[name] = url
     return variants
 
-# converts the video mediadata JSON into a dict mapping name to url
-def to_video_urls(jsonvariants):
+# parses the video mediadata JSON into a dict mapping name to url
+def parse_video_urls(jsonvariants):
     variants = {}
     for jsonvariant in jsonvariants:
         for name, url in jsonvariant.iteritems():
             variants[name] = url
     return variants
 
-# parses the latest videos from the given URL
-def latest_videos(url):
+def latest_videos():
     videos = []
-    handle = urllib2.urlopen(url)
+    handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/video/ondemand100_type-video.json")
     response = json.load(handle)
     for jsonvideo in response["videos"]:
-        video = to_video(jsonvideo)
+        video = parse_video(jsonvideo)
         videos.append(video)    
     return videos
-     
-latest = latest_videos("http://www.tagesschau.de/api/multimedia/video/ondemand100_type-video.json")
-for video in latest:
+
+def dossiers():
+    videos = []
+    handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/video/ondemanddossier100.json")
+    response = json.load(handle)
+    for jsonvideo in response["videos"]:
+        video = parse_video(jsonvideo)
+        videos.append(video)    
+    return videos
+
+
+print "Aktuelle Videos"     
+videos = latest_videos()
+for video in videos:
     print video
+
+print "Dossier"
+videos = dossiers()
+for video in videos:
+    print video
+
+# TODO: Alle/Aktuelle Sendungen, http://www.tagesschau.de/api/multimedia/sendung/letztesendungen100.json
+# TODO: (Sendungs) Archiv, http://www.tagesschau.de/api/multimedia/sendung/letztesendungen100_week-true.json"
+# TODO: LiveStream/TSin100, see multimedia http://www.tagesschau.de/api/multimedia/video/ondemand100.json 
+
+    
+    
     
