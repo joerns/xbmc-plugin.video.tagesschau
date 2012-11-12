@@ -4,6 +4,9 @@ import urllib2
 
 # See bottom for usage example
 
+# TODO: (Sendungs) Archiv, URL correct? http://www.tagesschau.de/api/multimedia/sendung/letztesendungen100_week-true.json"
+# TODO: LiveStream/TSin100, see multimedia http://www.tagesschau.de/api/multimedia/video/ondemand100.json 
+
 class VideoContent(object):
     def __init__(self, title, timestamp, videourls, imageurls=None, duration=None):
         self.title = title
@@ -36,28 +39,28 @@ class VideoContent(object):
             "imageurl=" + str(self.image_url()) + ")"
 
 # parses the video JSON into VideoContent
-def parse_video(jsonvideo):
+def _parse_video(jsonvideo):
     title = jsonvideo["headline"]
     # TODO: parse into datetime
     timestamp = jsonvideo["broadcastDate"]
-    imageurls = parse_image_urls(jsonvideo["images"][0]["variants"])
-    videourls = parse_video_urls(jsonvideo["mediadata"])
+    imageurls = _parse_image_urls(jsonvideo["images"][0]["variants"])
+    videourls = _parse_video_urls(jsonvideo["mediadata"])
     # calculate duration using outMilli and inMilli, duration is not set in JSON
     duration = (jsonvideo["outMilli"] - jsonvideo["inMilli"]) / 1000    
     return VideoContent(title, timestamp, videourls, imageurls, duration);       
 
 # parses the broadcast JSON into VideoContent
-def parse_broadcast(jsonbroadcast):
+def _parse_broadcast(jsonbroadcast):
     title = jsonbroadcast["title"]
     # TODO: parse into datetime
     timestamp = jsonbroadcast["broadcastDate"]
-    imageurls = parse_image_urls(jsonbroadcast["images"][0]["variants"])
+    imageurls = _parse_image_urls(jsonbroadcast["images"][0]["variants"])
     # TODO: fetch and parse details JSON 
     videourls = { "h264l" : "TODO" }
     return VideoContent(title, timestamp, videourls, imageurls);
 
 # parses the image variants JSON into a dict mapping name to url 
-def parse_image_urls(jsonvariants):
+def _parse_image_urls(jsonvariants):
     variants = {}
     for jsonvariant in jsonvariants:
         for name, url in jsonvariant.iteritems():
@@ -65,7 +68,7 @@ def parse_image_urls(jsonvariants):
     return variants
 
 # parses the video mediadata JSON into a dict mapping name to url
-def parse_video_urls(jsonvariants):
+def _parse_video_urls(jsonvariants):
     variants = {}
     for jsonvariant in jsonvariants:
         for name, url in jsonvariant.iteritems():
@@ -77,7 +80,7 @@ def latest_videos():
     handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/video/ondemand100_type-video.json")
     response = json.load(handle)
     for jsonvideo in response["videos"]:
-        video = parse_video(jsonvideo)
+        video = _parse_video(jsonvideo)
         videos.append(video)    
     return videos
 
@@ -86,7 +89,7 @@ def dossiers():
     handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/video/ondemanddossier100.json")
     response = json.load(handle)
     for jsonvideo in response["videos"]:
-        video = parse_video(jsonvideo)
+        video = _parse_video(jsonvideo)
         videos.append(video)    
     return videos
 
@@ -95,28 +98,23 @@ def latest_broadcasts():
     handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/sendung/letztesendungen100.json")
     response = json.load(handle)
     for jsonbroadcast in response["latestBroadcastsPerType"]:
-        video = parse_broadcast(jsonbroadcast)
+        video = _parse_broadcast(jsonbroadcast)
         videos.append(video)    
     return videos
 
-print "Aktuelle Videos"     
-videos = latest_videos()
-for video in videos:
-    print video
-
-print "Dossier"
-videos = dossiers()
-for video in videos:
-    print video
-    
-print "Aktuelle Sendungen"
-videos = latest_broadcasts()
-for video in videos:
-    print video
-
-# TODO: (Sendungs) Archiv, URL correct? http://www.tagesschau.de/api/multimedia/sendung/letztesendungen100_week-true.json"
-# TODO: LiveStream/TSin100, see multimedia http://www.tagesschau.de/api/multimedia/video/ondemand100.json 
-
-    
+if __name__ == "__main__":
+    print "Aktuelle Videos"     
+    videos = latest_videos()
+    for video in videos:
+        print video
+    print "Dossier"
+    videos = dossiers()
+    for video in videos:
+        print video
+    print "Aktuelle Sendungen"
+    videos = latest_broadcasts()
+    for video in videos:
+        print video
+   
     
     
