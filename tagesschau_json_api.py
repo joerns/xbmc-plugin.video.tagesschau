@@ -5,7 +5,7 @@ import urllib2
 # See bottom for usage example
 
 class VideoContent(object):
-    def __init__(self, title, timestamp, duration, videourls, imageurls=None):
+    def __init__(self, title, timestamp, videourls, imageurls=None, duration=None):
         self.title = title
         # datetime
         self.timestamp = timestamp
@@ -17,15 +17,16 @@ class VideoContent(object):
         self.imageurls = imageurls
     
     def video_url(self):
-        videourl=self.videourls["h264l"]
+        # TODO: broadcasts also have "adaptivestreaming"
+        videourl = self.videourls["h264l"]
         return videourl
 
     def image_url(self):
         try:
-            imageurl=self.imageurls["mittel16x9"]
+            imageurl = self.imageurls["mittel16x9"]
         # fallback for Wetter
         except KeyError:
-            imageurl=self.imageurls["grossgalerie16x9"]
+            imageurl = self.imageurls["grossgalerie16x9"]
         return imageurl
         
     # String representation for testing/development
@@ -34,17 +35,26 @@ class VideoContent(object):
             "duration=" + str(self.duration) + ", videourl=" + str(self.video_url()) + ", "\
             "imageurl=" + str(self.image_url()) + ")"
 
-# converts the video JSON into VideoContent
+# parses the video JSON into VideoContent
 def parse_video(jsonvideo):
     title = jsonvideo["headline"]
     # TODO: parse into datetime
     timestamp = jsonvideo["broadcastDate"]
-    # calculate duration using outMilli and inMilli, duration is not set in JSON
-    duration = (jsonvideo["outMilli"] - jsonvideo["inMilli"]) / 1000
     imageurls = parse_image_urls(jsonvideo["images"][0]["variants"])
     videourls = parse_video_urls(jsonvideo["mediadata"])
-    video = VideoContent(title, timestamp, duration, videourls, imageurls);       
-    return video
+    # calculate duration using outMilli and inMilli, duration is not set in JSON
+    duration = (jsonvideo["outMilli"] - jsonvideo["inMilli"]) / 1000    
+    return VideoContent(title, timestamp, videourls, imageurls, duration);       
+
+# parses the broadcast JSON into VideoContent
+def parse_broadcast(jsonbroadcast):
+    title = jsonbroadcast["title"]
+    # TODO: parse into datetime
+    timestamp = jsonbroadcast["broadcastDate"]
+    imageurls = parse_image_urls(jsonbroadcast["images"][0]["variants"])
+    # TODO: fetch and parse details JSON 
+    videourls = { "h264l" : "TODO" }
+    return VideoContent(title, timestamp, videourls, imageurls);
 
 # parses the image variants JSON into a dict mapping name to url 
 def parse_image_urls(jsonvariants):
@@ -80,6 +90,14 @@ def dossiers():
         videos.append(video)    
     return videos
 
+def latest_broadcasts():
+    videos = []
+    handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/sendung/letztesendungen100.json")
+    response = json.load(handle)
+    for jsonbroadcast in response["latestBroadcastsPerType"]:
+        video = parse_broadcast(jsonbroadcast)
+        videos.append(video)    
+    return videos
 
 print "Aktuelle Videos"     
 videos = latest_videos()
@@ -90,9 +108,13 @@ print "Dossier"
 videos = dossiers()
 for video in videos:
     print video
+    
+print "Aktuelle Sendungen"
+videos = latest_broadcasts()
+for video in videos:
+    print video
 
-# TODO: Alle/Aktuelle Sendungen, http://www.tagesschau.de/api/multimedia/sendung/letztesendungen100.json
-# TODO: (Sendungs) Archiv, http://www.tagesschau.de/api/multimedia/sendung/letztesendungen100_week-true.json"
+# TODO: (Sendungs) Archiv, URL correct? http://www.tagesschau.de/api/multimedia/sendung/letztesendungen100_week-true.json"
 # TODO: LiveStream/TSin100, see multimedia http://www.tagesschau.de/api/multimedia/video/ondemand100.json 
 
     
