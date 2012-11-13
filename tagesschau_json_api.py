@@ -59,7 +59,7 @@ class VideoContent(object):
 
     def image_url(self):
         """Returns the URL String of the image for this video."""
-        imageurl = _get(self.imageurls, "mittel16x9")
+        imageurl = _get(self.imageurls, "gross16x9")
         if(not imageurl):
             # fallback for Wetter
             imageurl = _get(self.imageurls, "grossgalerie16x9")
