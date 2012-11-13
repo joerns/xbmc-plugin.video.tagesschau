@@ -98,8 +98,11 @@ def _parse_broadcast(jsonbroadcast):
     # TODO: parse into datetime
     timestamp = jsonbroadcast["broadcastDate"]
     imageurls = _parse_image_urls(jsonbroadcast["images"][0]["variants"])
-    # TODO: fetch and parse details JSON 
-    videourls = { "h264l" : "TODO" }
+    # fetch and parse details JSON to get videourls
+    details=jsonbroadcast["details"]
+    handle=urllib2.urlopen(details)
+    jsondetails = json.load(handle)
+    videourls = _parse_video_urls(jsondetails["fullvideo"][0]["mediadata"])
     return VideoContent(title, timestamp, videourls, imageurls);
 
 def _parse_image_urls(jsonvariants):
