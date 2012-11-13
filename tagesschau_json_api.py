@@ -1,11 +1,12 @@
 try: import json
 except ImportError: import simplejson as json
 import urllib2
-
-# See bottom for usage example
+import logging
 
 # TODO: (Sendungs) Archiv, URL correct? http://www.tagesschau.de/api/multimedia/sendung/letztesendungen100_week-true.json"
 # TODO: LiveStream/TSin100, see multimedia http://www.tagesschau.de/api/multimedia/video/ondemand100.json 
+
+logger = logging.getLogger(__name__)
 
 class VideoContent(object):
     def __init__(self, title, timestamp, videourls, imageurls=None, duration=None):
@@ -77,43 +78,50 @@ def _parse_video_urls(jsonvariants):
     return variants
 
 def latest_videos():
+    logger.info("retrieving videos");
     videos = []
     handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/video/ondemand100_type-video.json")
     response = json.load(handle)
     for jsonvideo in response["videos"]:
         video = _parse_video(jsonvideo)
-        videos.append(video)    
+        videos.append(video) 
+    logger.info("found "+str(len(videos))+" videos")
     return videos
 
 def dossiers():
+    logger.info("retrieving videos");
     videos = []
     handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/video/ondemanddossier100.json")
     response = json.load(handle)
     for jsonvideo in response["videos"]:
         video = _parse_video(jsonvideo)
-        videos.append(video)    
+        videos.append(video)
+    logger.info("found "+str(len(videos))+" videos")            
     return videos
 
 def latest_broadcasts():
+    logger.info("retrieving videos");    
     videos = []
     handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/sendung/letztesendungen100.json")
     response = json.load(handle)
     for jsonbroadcast in response["latestBroadcastsPerType"]:
         video = _parse_broadcast(jsonbroadcast)
-        videos.append(video)    
+        videos.append(video)
+    logger.info("found "+str(len(videos))+" videos")              
     return videos
 
 if __name__ == "__main__":
-    print "Aktuelle Videos"     
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s %(funcName)s %(message)s')
     videos = latest_videos()
+    print "Aktuelle Videos"     
     for video in videos:
         print video
-    print "Dossier"
     videos = dossiers()
+    print "Dossier"
     for video in videos:
         print video
-    print "Aktuelle Sendungen"
     videos = latest_broadcasts()
+    print "Aktuelle Sendungen"
     for video in videos:
         print video
    
