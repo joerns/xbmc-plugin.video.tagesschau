@@ -3,7 +3,6 @@ except ImportError: import simplejson as json
 import urllib2
 import logging
 
-# TODO: parse Topics for Broadcasts
 # TODO: Datetime parsing for timestamp
 # TODO: LiveStream/TSin100, see multimedia http://www.tagesschau.de/api/multimedia/video/ondemand100.json 
 
@@ -134,8 +133,11 @@ def _parse_broadcast(jsonbroadcast):
     timestamp = jsonbroadcast["broadcastDate"]
     imageurls = _parse_image_urls(jsonbroadcast["images"][0]["variants"])
     details = jsonbroadcast["details"]
+    description = None
+    if("topics" in jsonbroadcast):
+        description = ", ".join(jsonbroadcast["topics"])
     # return LazyVideoContent that retrieves details JSON lazily
-    return LazyVideoContent(title, timestamp, details, imageurls)
+    return LazyVideoContent(title, timestamp, details, imageurls, None, description)
 
 def _parse_image_urls(jsonvariants):
     """Parses the image variants JSON into a dict mapping variant name to URL.""" 
