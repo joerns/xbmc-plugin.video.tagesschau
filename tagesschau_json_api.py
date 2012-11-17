@@ -7,7 +7,7 @@ import logging
 # TODO: Datetime parsing for timestamp
 # TODO: LiveStream/TSin100, see multimedia http://www.tagesschau.de/api/multimedia/video/ondemand100.json 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("plugin.video.tagesschau.api")
 
 class VideoContent(object):
     """Represents a single video or broadcast.
@@ -100,12 +100,13 @@ class LazyVideoContent(VideoContent):
     
     def _fetch_details(self):
         """Fetches videourls from detailsurl."""
-        logger.info("fetching details from "+self.detailsurl);
+        logger = logging.getLogger("plugin.video.tagesschau.api.LazyVideoContent")
+        logger.info("fetching details from " + self.detailsurl)
         handle = urllib2.urlopen(self.detailsurl)
         jsondetails = json.load(handle)
         self._videourls = _parse_video_urls(jsondetails["fullvideo"][0]["mediadata"])       
-        self.detailsfetched=True
-        logger.info("fetched details");
+        self.detailsfetched = True
+        logger.info("fetched details")
 
 
 def _get(dic, key):
@@ -124,7 +125,7 @@ def _parse_video(jsonvideo):
     videourls = _parse_video_urls(jsonvideo["mediadata"])
     # calculate duration using outMilli and inMilli, duration is not set in JSON
     duration = (jsonvideo["outMilli"] - jsonvideo["inMilli"]) / 1000    
-    return VideoContent(title, timestamp, videourls, imageurls, duration);       
+    return VideoContent(title, timestamp, videourls, imageurls, duration)       
 
 def _parse_broadcast(jsonbroadcast):
     """Parses the broadcast JSON into a VideoContent object."""
@@ -134,7 +135,7 @@ def _parse_broadcast(jsonbroadcast):
     imageurls = _parse_image_urls(jsonbroadcast["images"][0]["variants"])
     details = jsonbroadcast["details"]
     # return LazyVideoContent that retrieves details JSON lazily
-    return LazyVideoContent(title, timestamp, details, imageurls);
+    return LazyVideoContent(title, timestamp, details, imageurls)
 
 def _parse_image_urls(jsonvariants):
     """Parses the image variants JSON into a dict mapping variant name to URL.""" 
@@ -158,7 +159,7 @@ def latest_videos():
         Returns: 
             A list of VideoContent items.
     """
-    logger.info("retrieving videos");
+    logger.info("retrieving videos")
     videos = []
     handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/video/ondemand100~_type-video.json")
     response = json.load(handle)
@@ -174,7 +175,7 @@ def dossiers():
         Returns: 
             A list of VideoContent items.
     """    
-    logger.info("retrieving videos");
+    logger.info("retrieving videos")
     videos = []
     handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/video/ondemanddossier100.json")
     response = json.load(handle)
@@ -190,7 +191,7 @@ def latest_broadcasts():
         Returns: 
             A list of VideoContent items.
     """        
-    logger.info("retrieving videos");    
+    logger.info("retrieving videos")    
     videos = []
     handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/sendung/letztesendungen100.json")
     response = json.load(handle)
@@ -206,7 +207,7 @@ def archived_broadcasts():
         Returns: 
             A list of VideoContent items.
     """        
-    logger.info("retrieving videos");    
+    logger.info("retrieving videos")    
     videos = []
     handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/sendung/letztesendungen100~_week-true.json")
     response = json.load(handle)
