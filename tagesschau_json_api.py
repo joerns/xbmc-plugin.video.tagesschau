@@ -1,9 +1,9 @@
 try: import json
 except ImportError: import simplejson as json
-import urllib2
-import logging
+import urllib2, logging, datetime, re
 
 # TODO: Datetime parsing for timestamp
+# TODO: Robustness/Unit-Tests
 # TODO: LiveStream/TSin100, see multimedia http://www.tagesschau.de/api/multimedia/video/ondemand100.json 
 
 logger = logging.getLogger("plugin.video.tagesschau.api")
@@ -69,7 +69,7 @@ class VideoContent(object):
         
     def __str__(self):
         """Returns a String representation for development/testing."""
-        s = "VideoContent(title='" + self.title + "', timestamp='" + self.timestamp + "', "\
+        s = "VideoContent(title='" + self.title + "', timestamp='" + self.timestamp.isoformat() + "', "\
             "duration=" + str(self.duration) + ", videourl=" + str(self.video_url('L')) + ", "\
             "imageurl=" + str(self.image_url()) + ", description=" + str(self.description) + ")"
         return s.encode('utf-8', 'ignore')
@@ -115,11 +115,18 @@ def _get(dic, key):
     else:
         return None
 
+def _parse_date(isodate):
+    if(not isodate):
+        return None
+    # ignore time zone part
+    isodate=isodate[:-6]
+    print isodate
+    return datetime.datetime(*map(int, re.split('[^\d]', isodate)))
+
 def _parse_video(jsonvideo):
     """Parses the video JSON into a VideoContent object."""
     title = jsonvideo["headline"]
-    # TODO: parse into datetime
-    timestamp = jsonvideo["broadcastDate"]
+    timestamp=_parse_date(jsonvideo["broadcastDate"])
     imageurls = _parse_image_urls(jsonvideo["images"][0]["variants"])
     videourls = _parse_video_urls(jsonvideo["mediadata"])
     # calculate duration using outMilli and inMilli, duration is not set in JSON
@@ -129,8 +136,7 @@ def _parse_video(jsonvideo):
 def _parse_broadcast(jsonbroadcast):
     """Parses the broadcast JSON into a VideoContent object."""
     title = jsonbroadcast["title"]
-    # TODO: parse into datetime
-    timestamp = jsonbroadcast["broadcastDate"]
+    timestamp = _parse_date(jsonbroadcast["broadcastDate"])
     imageurls = _parse_image_urls(jsonbroadcast["images"][0]["variants"])
     details = jsonbroadcast["details"]
     description = None
