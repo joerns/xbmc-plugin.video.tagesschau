@@ -3,7 +3,8 @@ except ImportError: import simplejson as json
 import urllib2
 import logging
 
-# TODO: (Sendungs) Archiv, URL correct? http://www.tagesschau.de/api/multimedia/sendung/letztesendungen100_week-true.json"
+# TODO: parse Topics for Broadcasts
+# TODO: Datetime parsing for timestamp
 # TODO: LiveStream/TSin100, see multimedia http://www.tagesschau.de/api/multimedia/video/ondemand100.json 
 
 logger = logging.getLogger(__name__)
@@ -14,23 +15,25 @@ class VideoContent(object):
     Attributes:
         title: A String with the video's title
         timestamp: A datetime when this video was broadcast
-        videourls: A dict mapping video variant Strings to their URL Strings
         imageurls: A dict mapping image variants Strings to their URL Strings
+        videourls: A dict mapping video variant Strings to their URL Strings
         duration: An integer representing the length of the video in seconds
-    """    
-    
-    def __init__(self, title, timestamp, videourls, imageurls=None, duration=None):
+        description: A String describing the video content
+    """       
+    def __init__(self, title, timestamp, videourls=None, imageurls=None, duration=None, description=None):
         """Inits VideoContent with the given values."""
         self.title = title
         # datetime
         self.timestamp = timestamp
+        # video/mediadata names mapped to urls
+        self._videourls = videourls
+        # image variant names mapped to urls
+        self._imageurls = imageurls
         # duration in seconds
         self.duration = duration
-        # video/mediadata names mapped to urls
-        self.videourls = videourls
-        # image variant names mapped to urls
-        self.imageurls = imageurls
-    
+        # description of content
+        self.description = description
+        
     def video_url(self, quality):
         """Returns the video URL String for the given quality.
         
@@ -48,38 +51,69 @@ class VideoContent(object):
         if (not quality in ['S', 'M', 'L']):
             raise ValueError("quality must be one of 'S', 'M', 'L'")
         # TODO: use adaptivestreaming if available?
-        videourl = _get(self.videourls, "adaptivestreaming")
+        videourl = _get(self._videourls, "adaptivestreaming")
         if(quality == 'L' or not videourl):
-            videourl = _get(self.videourls, "h264l")
+            videourl = _get(self._videourls, "h264l")
         if(quality == 'M' or not videourl):    
-            videourl = _get(self.videourls, "h264m")
+            videourl = _get(self._videourls, "h264m")
         if(quality == 'S' or not videourl):    
-            videourl = _get(self.videourls, "h264s")
+            videourl = _get(self._videourls, "h264s")
         return videourl
 
     def image_url(self):
         """Returns the URL String of the image for this video."""
-        imageurl = _get(self.imageurls, "gross16x9")
+        imageurl = _get(self._imageurls, "gross16x9")
         if(not imageurl):
             # fallback for Wetter
-            imageurl = _get(self.imageurls, "grossgalerie16x9")
+            imageurl = _get(self._imageurls, "grossgalerie16x9")
         return imageurl
         
     def __str__(self):
         """Returns a String representation for development/testing."""
         s = "VideoContent(title='" + self.title + "', timestamp='" + self.timestamp + "', "\
             "duration=" + str(self.duration) + ", videourl=" + str(self.video_url('L')) + ", "\
-            "imageurl=" + str(self.image_url()) + ")"
+            "imageurl=" + str(self.image_url()) + ", description=" + str(self.description) + ")"
         return s.encode('utf-8', 'ignore')
 
-# 
+
+class LazyVideoContent(VideoContent):
+    """Represents a single video or broadcast that fetches its video urls attributes lazily.
+
+    Attributes:
+        title: A String with the video's title
+        timestamp: A datetime when this video was broadcast
+        imageurls: A dict mapping image variants Strings to their URL Strings
+        detailsurl: A String pointing to the detail JSON for this video
+        duration: An integer representing the length of the video in seconds
+        description: A String describing the video content
+    """  
+    def __init__(self, title, timestamp, detailsurl, imageurls=None, duration=None, description=None):
+        VideoContent.__init__(self, title, timestamp, None, imageurls, duration, description)
+        self.detailsurl = detailsurl
+        self.detailsfetched = False
+      
+    def video_url(self, quality):
+        """Overwritten to fetch videourls lazily."""
+        if(not self.detailsfetched):
+            self._fetch_details()
+        return VideoContent.video_url(self, quality)    
+    
+    def _fetch_details(self):
+        """Fetches videourls from detailsurl."""
+        logger.info("fetching details from "+self.detailsurl);
+        handle = urllib2.urlopen(self.detailsurl)
+        jsondetails = json.load(handle)
+        self._videourls = _parse_video_urls(jsondetails["fullvideo"][0]["mediadata"])       
+        self.detailsfetched=True
+        logger.info("fetched details");
+
+
 def _get(dic, key):
     """Helper method that returns None if key is not found."""
     if key in dic:
         return dic[key]
     else:
         return None
-    
 
 def _parse_video(jsonvideo):
     """Parses the video JSON into a VideoContent object."""
@@ -98,12 +132,9 @@ def _parse_broadcast(jsonbroadcast):
     # TODO: parse into datetime
     timestamp = jsonbroadcast["broadcastDate"]
     imageurls = _parse_image_urls(jsonbroadcast["images"][0]["variants"])
-    # fetch and parse details JSON to get videourls
-    details=jsonbroadcast["details"]
-    handle=urllib2.urlopen(details)
-    jsondetails = json.load(handle)
-    videourls = _parse_video_urls(jsondetails["fullvideo"][0]["mediadata"])
-    return VideoContent(title, timestamp, videourls, imageurls);
+    details = jsonbroadcast["details"]
+    # return LazyVideoContent that retrieves details JSON lazily
+    return LazyVideoContent(title, timestamp, details, imageurls);
 
 def _parse_image_urls(jsonvariants):
     """Parses the image variants JSON into a dict mapping variant name to URL.""" 
@@ -129,7 +160,7 @@ def latest_videos():
     """
     logger.info("retrieving videos");
     videos = []
-    handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/video/ondemand100_type-video.json")
+    handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/video/ondemand100~_type-video.json")
     response = json.load(handle)
     for jsonvideo in response["videos"]:
         video = _parse_video(jsonvideo)
@@ -169,6 +200,22 @@ def latest_broadcasts():
     logger.info("found " + str(len(videos)) + " videos")              
     return videos
 
+def archived_broadcasts():
+    """Retrieves the archive broadcast videos.
+        
+        Returns: 
+            A list of VideoContent items.
+    """        
+    logger.info("retrieving videos");    
+    videos = []
+    handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/sendung/letztesendungen100~_week-true.json")
+    response = json.load(handle)
+    for jsonbroadcast in response["latestBroadcastsPerType"]:
+        video = _parse_broadcast(jsonbroadcast)
+        videos.append(video)
+    logger.info("found " + str(len(videos)) + " videos")              
+    return videos
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s %(funcName)s %(message)s')
     videos = latest_videos()
@@ -183,6 +230,9 @@ if __name__ == "__main__":
     print "Aktuelle Sendungen"
     for video in videos:
         print video
-   
+    videos = archived_broadcasts()
+    print "Sendungensarchiv"
+    for video in videos:
+        print video   
     
     
