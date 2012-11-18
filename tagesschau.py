@@ -17,7 +17,7 @@
 
 import sys
 
-import xbmcplugin, xbmcgui, xbmcaddon
+import xbmc, xbmcplugin, xbmcgui, xbmcaddon
 
 from tagesschau_json_api import VideoContentProvider, JsonSource
 
@@ -25,6 +25,9 @@ from tagesschau_json_api import VideoContentProvider, JsonSource
 settings = xbmcaddon.Addon(id='plugin.video.tagesschau')
 quality_id = settings.getSetting("quality")
 quality = ['M', 'L'][int(quality_id)]
+
+fanart = xbmc.translatePath("special://home/addons/plugin.video.tagesschau/fanart.jpg")
+
 # ------------------------------------------------------------
 
 def addVideoContentDirectory(title, videos):
@@ -35,28 +38,31 @@ def addVideoContentDirectory(title, videos):
     
 def addVideoContentItem(videocontent):
     title = videocontent.title
-    url = videocontent.video_url('L')
+    url = videocontent.video_url(quality)
     # TODO: display duration as label2? 
-    # TODO: can't get fanart to display while using plugin, also see below
-    li = xbmcgui.ListItem(title, iconImage="special://home/plugins/video/plugin.video.tagesschau/fanart.jpg", thumbnailImage=videocontent.image_url())
+    li = xbmcgui.ListItem(title, iconImage=fanart, thumbnailImage=videocontent.image_url())
     # TODO: include duration? where/how is this displayed?
+    li.setProperty('Fanart_Image', fanart)
     li.setInfo(type="Video", infoLabels={ "Title": title, "Plot": videocontent.description })
+    #li.select(True)
     ok = xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=url, listitem=li)
     return ok
 
-# TODO: can't get fanart to display while using plugin, also see above
-xbmcplugin.setPluginFanart(int(sys.argv[1]), "special://home/plugins/video/plugin.video.tagesschau/fanart.jpg")
+# TODO: can't figure out how to set fanart for root/back folder of plugin
+# http://trac.xbmc.org/ticket/8228? 
+xbmcplugin.setPluginFanart(int(sys.argv[1]), 'special://home/addons/plugin.video.tagesschau/fanart.jpg')
+
 provider = VideoContentProvider(JsonSource())
-videos = provider.livestreams();
+videos = provider.livestreams()
 if(len(videos) == 1):
-    addVideoContentItem(videos[0]);
-videos = provider.latest_videos();
+    addVideoContentItem(videos[0])
+videos = provider.latest_videos()
 if(len(videos) > 0):
     addVideoContentDirectory("Aktuelle Videos", videos)
-videos = provider.latest_broadcasts();
+videos = provider.latest_broadcasts()
 if(len(videos) > 0):
     addVideoContentDirectory("Aktuelle Sendungen", videos)
-videos = provider.dossiers();
+videos = provider.dossiers()
 if(len(videos) > 0):
     addVideoContentDirectory("Dossier", videos)
 # TODO: this takes a while, but might be ok if only loaded when directory is selected
