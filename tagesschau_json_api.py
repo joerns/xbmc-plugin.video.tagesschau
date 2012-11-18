@@ -2,10 +2,7 @@ try: import json
 except ImportError: import simplejson as json
 import urllib2, logging, datetime, re
 
-# TODO: Datetime parsing for timestamp
 # TODO: Robustness/Unit-Tests
-# TODO: LiveStream/TSin100, see multimedia http://www.tagesschau.de/api/multimedia/video/ondemand100.json 
-
 logger = logging.getLogger("plugin.video.tagesschau.api")
 
 class VideoContent(object):
@@ -49,8 +46,11 @@ class VideoContent(object):
         """
         if (not quality in ['S', 'M', 'L']):
             raise ValueError("quality must be one of 'S', 'M', 'L'")
-        # TODO: use adaptivestreaming if available?
-        videourl = _get(self._videourls, "adaptivestreaming")
+        # TODO: experiment with formats of livestream
+        videourl = _get(self._videourls,"m3u8_A_high")
+        # TODO: use video adaptivestreaming if available?
+        if(not videourl):
+            videourl = _get(self._videourls, "adaptivestreaming")
         if(quality == 'L' or not videourl):
             videourl = _get(self._videourls, "h264l")
         if(quality == 'M' or not videourl):    
@@ -68,10 +68,14 @@ class VideoContent(object):
         return imageurl
         
     def __str__(self):
+        if(self.timestamp):
+            tsformatted=self.timestamp.isoformat()
+        else:
+            tsformatted=str(None)
         """Returns a String representation for development/testing."""
-        s = "VideoContent(title='" + self.title + "', timestamp='" + self.timestamp.isoformat() + "', "\
+        s = "VideoContent(title='" + self.title + "', timestamp=" + tsformatted + ", "\
             "duration=" + str(self.duration) + ", videourl=" + str(self.video_url('L')) + ", "\
-            "imageurl=" + str(self.image_url()) + ", description=" + str(self.description) + ")"
+            "imageurl=" + str(self.image_url()) + ", description='" + str(self.description) + "')"
         return s.encode('utf-8', 'ignore')
 
 
@@ -120,7 +124,6 @@ def _parse_date(isodate):
         return None
     # ignore time zone part
     isodate=isodate[:-6]
-    print isodate
     return datetime.datetime(*map(int, re.split('[^\d]', isodate)))
 
 def _parse_video(jsonvideo):
@@ -130,7 +133,10 @@ def _parse_video(jsonvideo):
     imageurls = _parse_image_urls(jsonvideo["images"][0]["variants"])
     videourls = _parse_video_urls(jsonvideo["mediadata"])
     # calculate duration using outMilli and inMilli, duration is not set in JSON
-    duration = (jsonvideo["outMilli"] - jsonvideo["inMilli"]) / 1000    
+    if("inMilli" in jsonvideo and "outMilli" in jsonvideo):
+        duration = (jsonvideo["outMilli"] - jsonvideo["inMilli"]) / 1000
+    else:
+        duration=None    
     return VideoContent(title, timestamp, videourls, imageurls, duration)       
 
 def _parse_broadcast(jsonbroadcast):
@@ -144,6 +150,29 @@ def _parse_broadcast(jsonbroadcast):
         description = ", ".join(jsonbroadcast["topics"])
     # return LazyVideoContent that retrieves details JSON lazily
     return LazyVideoContent(title, timestamp, details, imageurls, None, description)
+
+def _parse_multimedia(jsonmultimedia):
+    videos = []
+    multimedia = jsonmultimedia[0]
+    if("livestreams" in multimedia):  
+        for jsonvideo in multimedia["livestreams"]:
+            # only add livestream if on the air now...
+            if(jsonvideo["live"]=="true"):               
+                video = _parse_livestream(jsonvideo)
+                videos.append(video)
+        multimedia = jsonmultimedia[1]     
+    if("tsInHundredSeconds" in multimedia):               
+        video = _parse_video(multimedia["tsInHundredSeconds"])
+        videos.append(video)          
+    return videos;
+
+def _parse_livestream(jsonlivestream):
+    """Parses the livestream JSON into a VideoContent object."""
+    title = "Livestream: " + jsonlivestream["title"]
+    timestamp=None
+    imageurls = _parse_image_urls(jsonlivestream["images"][0]["variants"])
+    videourls = _parse_video_urls(jsonlivestream["mediadata"]) 
+    return VideoContent(title, timestamp, videourls, imageurls)
 
 def _parse_image_urls(jsonvariants):
     """Parses the image variants JSON into a dict mapping variant name to URL.""" 
@@ -171,9 +200,14 @@ def latest_videos():
     videos = []
     handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/video/ondemand100~_type-video.json")
     response = json.load(handle)
+    # load optional livestream(s) and tsIn100secs from multimedia section
+    if("multimedia" in response):
+        videos = _parse_multimedia(response["multimedia"])         
+    # load videos
     for jsonvideo in response["videos"]:
         video = _parse_video(jsonvideo)
         videos.append(video) 
+
     logger.info("found " + str(len(videos)) + " videos")
     return videos
 
@@ -189,7 +223,7 @@ def dossiers():
     response = json.load(handle)
     for jsonvideo in response["videos"]:
         video = _parse_video(jsonvideo)
-        videos.append(video)
+        videos.append(video)  
     logger.info("found " + str(len(videos)) + " videos")            
     return videos
 
