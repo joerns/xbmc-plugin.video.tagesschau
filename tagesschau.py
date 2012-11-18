@@ -15,94 +15,53 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import sys, datetime
+import sys
 
 import xbmcplugin, xbmcgui, xbmcaddon
 
-import parserss
-
-# -- Podcast Configuration -----------------------------------
-podcast_config = {
-    "tagesschau": { "url": {"M": "http://www.tagesschau.de/export/video-podcast/webm/tagesschau",
-                            "L": "http://www.tagesschau.de/export/video-podcast/webl/tagesschau" },
-                    "name": "Tagesschau"},
-    "tagesschau100": { "url": { "default": "http://www.tagesschau.de/export/video-podcast/tagesschau-in-100-sekunden" },
-                       "name": "Tagesschau in 100 Sekunden" },
-    "tagesthemen": { "url": { "M": "http://www.tagesschau.de/export/video-podcast/webm/tagesthemen",
-                            "L": "http://www.tagesschau.de/export/video-podcast/webl/tagesthemen" },
-                     "name": "Tagesthemen" },
-    "tageswebschau": { "url": { "M": "http://www.tagesschau.de/export/video-podcast/webm/tageswebschau" },
-                       "name": "tagesWEBschau" }, 
-    "nachtmagazin": { "url": { "M": "http://www.tagesschau.de/export/video-podcast/webm/nachtmagazin",
-                               "L": "http://www.tagesschau.de/export/video-podcast/webl/nachtmagazin" },
-                      "name": "Nachtmagazin" },
-    "berichtausberlin": { "url": { "M": "http://www.tagesschau.de/export/video-podcast/webm/bab",
-                                   "L": "http://www.tagesschau.de/export/video-podcast/webl/bab" },
-                          "name": "Bericht aus Berlin" },
-    "wochenspiegel": { "url": {"M": "http://www.tagesschau.de/export/video-podcast/webm/wochenspiegel",
-                               "L": "http://www.tagesschau.de/export/video-podcast/webl/wochenspiegel" },
-                       "name": "Wochenspiegel" },
-    "deppendorfswoche": { "url": { "default": "http://www.tagesschau.de/export/video-podcast/deppendorfswoche" },
-                          "name": "Deppendorfs Woche" },
-    "tagesschauvor20jahren": { "url": { "M": "http://www.tagesschau.de/export/video-podcast/webm/tagesschau-vor-20-jahren",
-                                        "L": "http://www.tagesschau.de/export/video-podcast/webl/tagesschau-vor-20-jahren" },
-                               "name": "Tagesschau vor 20 Jahren" }
-    }
-# ------------------------------------------------------------
+from tagesschau_json_api import VideoContentProvider, JsonSource
 
 # -- Settings -----------------------------------------------
 settings = xbmcaddon.Addon(id='plugin.video.tagesschau')
 quality_id = settings.getSetting("quality")
 quality = ['M', 'L'][int(quality_id)]
-
-
-# change order here or remove elements if you like
-podcasts = ("tagesschau", "tagesschau100", "tagesthemen", "tageswebschau", "nachtmagazin", 
-            "berichtausberlin", "wochenspiegel", "deppendorfswoche", "tagesschauvor20jahren")
-
-# Time format
-datetimeformat = "%a %d. %B %Y, %H:%M"
-dateformat = "%a %d. %B %Y"
 # ------------------------------------------------------------
 
-def getUrl(podcast, quality):
-    """Returns podcast URL in the desired quality (if available)"""
-    config = podcast_config[podcast]["url"]
-    if quality in config.keys():
-        return config[quality]
+def addVideoContentDirectory(title, videos):
+    # TODO: add a new virtual directory, ideally videos are only loaded when directory is accessed
+    # not sure what using url = "plugin:// for another virtual directory" does...
+    for video in videos:
+        addVideoContentItem(video)
+    
+def addVideoContentItem(videocontent):
+    title = videocontent.title
+    url = videocontent.video_url('L')
+    # TODO: display duration as label2? 
+    # TODO: can't get fanart to display while using plugin, also see below
+    li = xbmcgui.ListItem(title, iconImage="special://home/plugins/video/plugin.video.tagesschau/fanart.jpg", thumbnailImage=videocontent.image_url())
+    # TODO: include duration? where/how is this displayed?
+    li.setInfo(type="Video", infoLabels={ "Title": title, "Plot": videocontent.description })
+    ok = xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=url, listitem=li)
+    return ok
 
-    default_quality = config.keys()[0]
-    return config[default_quality]
-
-def getName(podcast, item):
-    """Returns a proper name for an item"""
-    if item["datetime"]:
-        name = podcast_config[podcast]["name"]
-        date, time = item["datetime"]
-        timestr = ""
-
-        # special treatment for "Tagesschau vor 20 Jahren"
-        if podcast == "tagesschauvor20jahren":
-            date = datetime.date(date.year - 20, date.month, date.day)
-
-        if date and time:
-            timestr = datetime.datetime.combine(date,time).strftime(datetimeformat)
-        else:
-            timestr = date.strftime(dateformat)
-        return name + " (" + timestr + ")"
-
-    return item["title"]
-
-def addLink(name, url, iconimage, description):
-        liz = xbmcgui.ListItem(name, iconImage="DefaultVideo.png", thumbnailImage=iconimage)
-        liz.setInfo(type="Video", infoLabels={ "Title": name, "Plot": description } )
-        ok = xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=url, listitem=liz)
-        return ok
-
-for podcast in podcasts:
-    feed = parserss.parserss(getUrl(podcast, quality))
-    if len(feed["items"]) > 0:
-        item = feed["items"][0]
-        addLink(getName(podcast, item), item["media"]["url"], feed["image"], item.get("description", ""))
+# TODO: can't get fanart to display while using plugin, also see above
+xbmcplugin.setPluginFanart(int(sys.argv[1]), "special://home/plugins/video/plugin.video.tagesschau/fanart.jpg")
+provider = VideoContentProvider(JsonSource())
+videos = provider.livestreams();
+if(len(videos) == 1):
+    addVideoContentItem(videos[0]);
+videos = provider.latest_videos();
+if(len(videos) > 0):
+    addVideoContentDirectory("Aktuelle Videos", videos)
+videos = provider.latest_broadcasts();
+if(len(videos) > 0):
+    addVideoContentDirectory("Aktuelle Sendungen", videos)
+videos = provider.dossiers();
+if(len(videos) > 0):
+    addVideoContentDirectory("Dossier", videos)
+# TODO: this takes a while, but might be ok if only loaded when directory is selected
+# videos = provider.archived_broadcasts();
+# if(len(videos) > 0):
+#    addVideoContentDirectory("Sendungsarchiv", videos)
 
 xbmcplugin.endOfDirectory(int(sys.argv[1]))
