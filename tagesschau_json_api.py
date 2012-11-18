@@ -156,20 +156,14 @@ class VideoContentParser(object):
         videourls = self._parse_video_urls(jsonlivestream["mediadata"]) 
         return VideoContent(title, timestamp, videourls, imageurls)
 
-    def parse_multimedia(self, jsonmultimedia):
+    def parse_livestreams(self, jsonlivestreams):
         """Parses the multimedia JSON into a list of VideoContent objects."""
         videos = []
-        multimedia = jsonmultimedia[0]
-        if("livestreams" in multimedia):  
-            for jsonvideo in multimedia["livestreams"]:
-                # only add livestream if on the air now...
-                if(jsonvideo["live"] == "true"):               
-                    video = self._parse_livestream(jsonvideo)
-                    videos.append(video)
-            multimedia = jsonmultimedia[1]     
-        if("tsInHundredSeconds" in multimedia):               
-            video = self.parse_video(multimedia["tsInHundredSeconds"])
-            videos.append(video)          
+        for jsonvideo in jsonlivestreams:
+            # only add livestream if on the air now...
+            if(jsonvideo["live"] == "true"):               
+                video = self._parse_livestream(jsonvideo)
+                videos.append(video)            
         return videos;
 
     def parse_video_urls(self, jsonvariants):
@@ -204,6 +198,22 @@ class VideoContentProvider(object):
         self._parser = VideoContentParser()
         self._logger = logging.getLogger("plugin.video.tagesschau.api.VideoContentProvider")
 
+    def livestreams(self):
+        """Retrieves the livestream(s) currently on the air.
+        
+            Returns:
+                A list of VideoContent object for livestream(s) on the air.
+        """
+        self._logger.info("retrieving livestream(s)")
+        videos = []
+        handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/video/ondemand100~_type-video.json")
+        response = json.load(handle)
+        if("multimedia" in response):
+            multimedia = response["multimedia"]
+            if("livestreams" in multimedia[0]):  
+                videos = self._parser.parse_livestreams(multimedia[0]["livestreams"])         
+        return videos;    
+
     def latest_videos(self):
         """Retrieves the latest videos.
             
@@ -214,10 +224,6 @@ class VideoContentProvider(object):
         videos = []
         handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/video/ondemand100~_type-video.json")
         response = json.load(handle)
-        # load optional livestream(s) and tsIn100secs from multimedia section
-        if("multimedia" in response):
-            videos = self._parser.parse_multimedia(response["multimedia"])         
-        # load videos
         for jsonvideo in response["videos"]:
             video = self._parser.parse_video(jsonvideo)
             videos.append(video) 
@@ -276,6 +282,10 @@ class VideoContentProvider(object):
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s %(funcName)s %(message)s')
     provider = VideoContentProvider()
+    videos = provider.livestreams()
+    print "Livestreams:"     
+    for video in videos:
+        print video  
     videos = provider.latest_videos()
     print "Aktuelle Videos"     
     for video in videos:
