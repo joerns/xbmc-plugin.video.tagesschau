@@ -1,3 +1,20 @@
+#
+# Copyright 2012 Henning Saul, Joern Schumacher 
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
 try: import json
 except ImportError: import simplejson as json
 import urllib2, logging, datetime, re
@@ -47,10 +64,9 @@ class VideoContent(object):
         if (not quality in ['S', 'M', 'L']):
             raise ValueError("quality must be one of 'S', 'M', 'L'")
         # TODO: experiment with formats of livestream
-        videourl = self._get(self._videourls, "m3u8_A_high")
-        # TODO: use video adaptivestreaming if available?
-        if(not videourl):
-            videourl = self._get(self._videourls, "adaptivestreaming")
+        videourl = self._get(self._videourls, "rtsp_high")
+        if(videourl):
+            return videourl    
         if(quality == 'L' or not videourl):
             videourl = self._get(self._videourls, "h264l")
         if(quality == 'M' or not videourl):    
@@ -140,6 +156,8 @@ class VideoContentParser(object):
         """Parses the broadcast JSON into a LazyVideoContent object."""
         title = jsonbroadcast["title"]
         timestamp = self._parse_date(jsonbroadcast["broadcastDate"])
+        if(timestamp):
+            title = title + timestamp.date().strftime(' vom %d.%m.%Y')
         imageurls = self._parse_image_urls(jsonbroadcast["images"][0]["variants"])
         details = jsonbroadcast["details"]
         description = None
@@ -148,12 +166,12 @@ class VideoContentParser(object):
         # return LazyVideoContent that retrieves details JSON lazily
         return LazyVideoContent(title, timestamp, details, imageurls, None, description)
 
-    def parse_livestream(self, jsonlivestream):
+    def _parse_livestream(self, jsonlivestream):
         """Parses the livestream JSON into a VideoContent object."""
         title = "Livestream: " + jsonlivestream["title"]
         timestamp = None
         imageurls = self._parse_image_urls(jsonlivestream["images"][0]["variants"])
-        videourls = self._parse_video_urls(jsonlivestream["mediadata"]) 
+        videourls = self.parse_video_urls(jsonlivestream["mediadata"]) 
         return VideoContent(title, timestamp, videourls, imageurls)
 
     def parse_livestreams(self, jsonlivestreams):
@@ -161,10 +179,10 @@ class VideoContentParser(object):
         videos = []
         for jsonvideo in jsonlivestreams:
             # only add livestream if on the air now...
-            if(jsonvideo["live"] == "true"):               
-                video = self._parse_livestream(jsonvideo)
-                videos.append(video)            
-        return videos;
+            # if(jsonvideo["live"] == "true"):               
+            video = self._parse_livestream(jsonvideo)
+            videos.append(video)            
+        return videos
 
     def parse_video_urls(self, jsonvariants):
         """Parses the video mediadata JSON into a dict mapping variant name to URL."""
@@ -194,7 +212,8 @@ class VideoContentParser(object):
 class VideoContentProvider(object):
     """Provides access to the VideoContent offered by the tagesschau JSON API.""" 
     
-    def __init__(self):
+    def __init__(self, jsonsource):
+        self._jsonsource = jsonsource
         self._parser = VideoContentParser()
         self._logger = logging.getLogger("plugin.video.tagesschau.api.VideoContentProvider")
 
@@ -206,13 +225,12 @@ class VideoContentProvider(object):
         """
         self._logger.info("retrieving livestream(s)")
         videos = []
-        handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/video/ondemand100~_type-video.json")
-        response = json.load(handle)
-        if("multimedia" in response):
-            multimedia = response["multimedia"]
+        data = self._jsonsource.livestreams()
+        if("multimedia" in data):
+            multimedia = data["multimedia"]
             if("livestreams" in multimedia[0]):  
                 videos = self._parser.parse_livestreams(multimedia[0]["livestreams"])         
-        return videos;    
+        return videos    
 
     def latest_videos(self):
         """Retrieves the latest videos.
@@ -222,9 +240,8 @@ class VideoContentProvider(object):
         """
         self._logger.info("retrieving videos")
         videos = []
-        handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/video/ondemand100~_type-video.json")
-        response = json.load(handle)
-        for jsonvideo in response["videos"]:
+        data = self._jsonsource.latest_videos()
+        for jsonvideo in data["videos"]:
             video = self._parser.parse_video(jsonvideo)
             videos.append(video) 
     
@@ -239,9 +256,8 @@ class VideoContentProvider(object):
         """    
         self._logger.info("retrieving videos")
         videos = []
-        handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/video/ondemanddossier100.json")
-        response = json.load(handle)
-        for jsonvideo in response["videos"]:
+        data = self._jsonsource.dossiers()
+        for jsonvideo in data["videos"]:
             video = self._parser.parse_video(jsonvideo)
             videos.append(video)  
         self._logger.info("found " + str(len(videos)) + " videos")            
@@ -255,9 +271,8 @@ class VideoContentProvider(object):
         """        
         self._logger.info("retrieving videos")
         videos = []
-        handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/sendung/letztesendungen100.json")
-        response = json.load(handle)
-        for jsonbroadcast in response["latestBroadcastsPerType"]:
+        data = self._jsonsource.latest_broadcasts()
+        for jsonbroadcast in data["latestBroadcastsPerType"]:
             video = self._parser.parse_broadcast(jsonbroadcast)
             videos.append(video)
         self._logger.info("found " + str(len(videos)) + " videos")              
@@ -271,21 +286,50 @@ class VideoContentProvider(object):
         """        
         self._logger.info("retrieving videos") 
         videos = []
-        handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/sendung/letztesendungen100~_week-true.json")
-        response = json.load(handle)
-        for jsonbroadcast in response["latestBroadcastsPerType"]:
+        data = self._jsonsource.archived_broadcasts()
+        for jsonbroadcast in data["latestBroadcastsPerType"]:
             video = self._parser.parse_broadcast(jsonbroadcast)
             videos.append(video)
         self._logger.info("found " + str(len(videos)) + " videos")              
         return videos
 
+
+class JsonSource(object):
+    """Provides access to the raw objects parsed from the TS JSON API.
+        Can be replaced for unittesting purposes."""
+    
+    def livestreams(self):
+        """Returns the parsed JSON structure for livestreams."""
+        handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/video/ondemand100~_type-video.json")
+        return json.loads(handle.read())
+
+    def latest_videos(self):
+        """Returns the parsed JSON structure for the latest videos."""        
+        handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/video/ondemand100~_type-video.json")
+        return json.loads(handle.read())
+
+    def dossiers(self):
+        """Returns the parsed JSON structure for the dossiers."""        
+        handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/video/ondemanddossier100.json")
+        return json.loads(handle.read())
+
+    def latest_broadcasts(self):
+        """Returns the parsed JSON structure for the latest broadcasts."""        
+        handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/sendung/letztesendungen100.json")
+        return json.loads(handle.read())
+
+    def archived_broadcasts(self):
+        """Returns the parsed JSON structure for the archived broadcasts."""        
+        handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/sendung/letztesendungen100~_week-true.json")
+        return json.loads(handle.read())
+        
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s %(funcName)s %(message)s')
-    provider = VideoContentProvider()
+    provider = VideoContentProvider(JsonSource())
     videos = provider.livestreams()
     print "Livestreams:"     
     for video in videos:
-        print video  
+        print video
     videos = provider.latest_videos()
     print "Aktuelle Videos"     
     for video in videos:
@@ -299,7 +343,7 @@ if __name__ == "__main__":
     for video in videos:
         print video
     videos = provider.archived_broadcasts()
-    print "Sendungensarchiv"
+    print "Sendungsarchiv"
     for video in videos:
         print video   
     
