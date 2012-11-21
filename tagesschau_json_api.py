@@ -143,7 +143,9 @@ class VideoContentParser(object):
         """Parses the video JSON into a VideoContent object."""
         title = jsonvideo["headline"]
         timestamp = self._parse_date(jsonvideo["broadcastDate"])
-        imageurls = self._parse_image_urls(jsonvideo["images"][0]["variants"])
+        imageurls = {}
+        if(len(jsonvideo["images"]) > 0):
+            imageurls = self._parse_image_urls(jsonvideo["images"][0]["variants"])
         videourls = self.parse_video_urls(jsonvideo["mediadata"])
         # calculate duration using outMilli and inMilli, duration is not set in JSON
         if("inMilli" in jsonvideo and "outMilli" in jsonvideo):
