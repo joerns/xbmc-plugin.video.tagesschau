@@ -17,21 +17,21 @@
 
 import unittest
 import json
-from tagesschau_json_api import VideoContentProvider
+from tagesschau_json_api import VideoContentParser
 
-class VideoContentProviderTest(unittest.TestCase):
+class VideoContentParserTest(unittest.TestCase):
 
     def setUp(self):
-        self.provider = VideoContentProvider(TestJsonSource());
+        self.parser = VideoContentParser()
 
-    def testDossiers(self):
-        self.assertEqual(len(self.provider.dossiers()), 10)
-
-class TestJsonSource(object):
-
-    def dossiers(self):
-        handle = open('resources/test/dossiers.json', 'r');
+    def load_json(self, filename):
+        handle = open(filename, 'r');
         return json.loads(handle.read())
 
+    def test_parse_video_missing_videos(self):
+        jsonvideo = self.load_json('resources/test/video_missing_image_1.json')
+        video = self.parser.parse_video(jsonvideo);
+        self.assertIsNone(video.image_url(), 'Video JSON has no images, expected None as result')
+        
 if __name__ == "__main__":
     unittest.main()
