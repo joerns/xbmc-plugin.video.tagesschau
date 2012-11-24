@@ -64,16 +64,15 @@ class VideoContent(object):
         """
         if (not quality in ['S', 'M', 'L']):
             raise ValueError("quality must be one of 'S', 'M', 'L'")
-        # TODO: experiment with formats of livestream
-        videourl = self._videourls.get("rtsp_high")
-        if(videourl):
-            return videourl    
-        if(quality == 'L' or not videourl):
+
+        if quality == 'L':
             videourl = self._videourls.get("h264l")
-        if(quality == 'M' or not videourl):    
+        if quality == 'M' or not videourl:    
             videourl = self._videourls.get("h264m")
-        if(quality == 'S' or not videourl):    
+        if quality == 'S' or not videourl:    
             videourl = self._videourls.get("h264s")
+        if not videourl:
+            videourl = self._videourls.get("rtsp_high")
         return videourl
 
     def image_url(self):
