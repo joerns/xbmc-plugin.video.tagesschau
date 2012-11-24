@@ -27,6 +27,7 @@ FANART = xbmc.translatePath('special://home/addons/' + ADDON_ID + '/fanart.jpg')
 FEED_PARAM = 'feed'
 ACTION_PARAM = 'action'
 URL_PARAM = 'url'
+DEFAULT_IMAGE_URL = 'http://miss.tagesschau.de/image/sendung/ard_portal_vorspann_ts.jpg'
 
 # -- Settings -----------------------------------------------
 settings = xbmcaddon.Addon(id=ADDON_ID)
@@ -59,8 +60,10 @@ def addVideoContentItem(videocontent):
     url_data = { ACTION_PARAM: 'play_video',
                  URL_PARAM: urllib.quote(url) }
     url = 'plugin://' + ADDON_ID + '?' + urllib.urlencode(url_data)
-
-    li = xbmcgui.ListItem(title, thumbnailImage=videocontent.image_url())
+    image_url=videocontent.image_url()
+    if(not image_url):
+        image_url = DEFAULT_IMAGE_URL
+    li = xbmcgui.ListItem(title, thumbnailImage=image_url)
     li.setProperty('Fanart_Image', FANART)
     li.setProperty('IsPlayable', 'true')
     li.setInfo(type="Video", infoLabels={ "Title": title,
