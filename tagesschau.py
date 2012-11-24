@@ -15,7 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import sys
+import sys, urlparse
 
 import xbmc, xbmcplugin, xbmcgui, xbmcaddon
 
@@ -54,20 +54,12 @@ def addVideoContentItem(videocontent):
     return ok
 
 def get_params():
-        result = {}
-        paramstring = sys.argv[2]
-        if len(paramstring) >= 2:
-                params = sys.argv[2]
-                cleanedparams = params.replace('?', '')
-                if (params[len(params) - 1] == '/'):
-                        params = params[0:len(params) - 2]
-                pairsofparams = cleanedparams.split('&')
-                for i in range(len(pairsofparams)):
-                        splitparams = {}
-                        splitparams = pairsofparams[i].split('=')
-                        if (len(splitparams)) == 2:
-                                result[splitparams[0]] = splitparams[1]                             
-        return result
+    paramstring = sys.argv[2]
+    params = urlparse.parse_qs(urlparse.urlparse(paramstring).query)
+    
+    for key in params:
+        params[key] = params[key][0]
+    return params
     
 # TODO: can't figure out how to set fanart for root/back folder of plugin
 # http://trac.xbmc.org/ticket/8228? 
