@@ -19,14 +19,16 @@ import sys, urllib, urlparse
 
 import xbmc, xbmcplugin, xbmcgui, xbmcaddon
 
-from tagesschau_json_api import VideoContentProvider, JsonSource
+from tagesschau_json_api import VideoContentProvider, JsonSource, LazyVideoContent
 
 # -- Constants ----------------------------------------------
 ADDON_ID = 'plugin.video.tagesschau'
 FANART = xbmc.translatePath('special://home/addons/' + ADDON_ID + '/fanart.jpg')
-FEED_PARAM = 'feed'
 ACTION_PARAM = 'action'
+FEED_PARAM = 'feed'
+ID_PARAM = 'tsid'
 URL_PARAM = 'url'
+
 DEFAULT_IMAGE_URL = 'http://miss.tagesschau.de/image/sendung/ard_portal_vorspann_ts.jpg'
 
 # -- Settings -----------------------------------------------
@@ -53,11 +55,15 @@ def addVideoContentDirectory(title, method):
     li.setProperty('Fanart_Image', FANART)
     xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=url, listitem=li, isFolder=True)    
     
-def addVideoContentItem(videocontent):
+def addVideoContentItem(videocontent, method):
     title = videocontent.title
-    url = videocontent.video_url(quality)
-    url_data = { ACTION_PARAM: 'play_video',
-                 URL_PARAM: urllib.quote(url) }
+    url_data = { ACTION_PARAM: 'play_video' }
+    # for LazyVideoContent let's defer its expensive video_url call
+    if isinstance(videocontent, LazyVideoContent):
+        url_data[FEED_PARAM] = method
+        url_data[ID_PARAM] = urllib.quote(videocontent.tsid)
+    else:
+        url_data[URL_PARAM] = urllib.quote(videocontent.video_url(quality))
     url = 'plugin://' + ADDON_ID + '?' + urllib.urlencode(url_data)
     image_url=videocontent.image_url()
     if(not image_url):
@@ -87,23 +93,33 @@ params = get_params()
 provider = VideoContentProvider(JsonSource())
 
 if params.get(ACTION_PARAM) == 'play_video':
-    url = urllib.unquote(params[URL_PARAM])
+    # expecting either url or feed and id param
+    url = params.get(URL_PARAM)
+    if url:
+        url = urllib.unquote(url)
+    else:   
+        videos_method = getattr(provider, params[FEED_PARAM])
+        videos = videos_method()    
+        tsid = urllib.unquote(params[ID_PARAM])
+        for video in videos:
+            if video.tsid == tsid:
+                url = video.video_url(quality)    
     listitem = xbmcgui.ListItem(path=url)
-    xbmcplugin.setResolvedUrl(handle=int(sys.argv[1]), succeeded=True, listitem=listitem)
+    xbmcplugin.setResolvedUrl(handle=int(sys.argv[1]), succeeded=(url!=None), listitem=listitem)
 
 elif params.get(ACTION_PARAM) == 'list_feed':
     # list video for a directory
     videos_method = getattr(provider, params[FEED_PARAM])
     videos = videos_method()
     for video in videos:
-        addVideoContentItem(video)
+        addVideoContentItem(video, params[FEED_PARAM])
 
 else:
     # populate root directory
     # check whether there is a livestream
     videos = provider.livestreams()
     if(len(videos) == 1):
-        addVideoContentItem(videos[0])
+        addVideoContentItem(videos[0],"livestreams")
 
     # add directories for other feeds        
     add_named_directory = lambda x: addVideoContentDirectory(strings[x], x)
