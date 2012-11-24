@@ -31,7 +31,16 @@ settings = xbmcaddon.Addon(id=ADDON_ID)
 quality_id = settings.getSetting("quality")
 quality = ['M', 'L'][int(quality_id)]
 
+# -- I18n ---------------------------------------------------
+language = xbmcaddon.Addon(id='plugin.video.tagesschau').getLocalizedString
+strings = { 'latest_videos': language(30100),
+            'latest_broadcasts': language(30101),
+            'dossiers': language(30102),
+            'archived_broadcasts': language(30103)
+}
+
 # ------------------------------------------------------------
+
 
 def addVideoContentDirectory(title, method):
     url = 'plugin://' + ADDON_ID + '/?' + FEED_PARAM + '=' + method;
@@ -74,11 +83,13 @@ if(FEED_PARAM not in params):
     videos = provider.livestreams()
     if(len(videos) == 1):
         addVideoContentItem(videos[0])
+
     # add directories for other feeds        
-    addVideoContentDirectory('Aktuelle Videos', 'latest_videos')
-    addVideoContentDirectory('Aktuelle Sendungen', 'latest_broadcasts')
-    addVideoContentDirectory('Dossier', 'dossiers')
-    addVideoContentDirectory('Sendungsarchiv', 'archived_broadcasts')   
+    add_named_directory = lambda x: addVideoContentDirectory(strings[x], x)
+    add_named_directory('latest_videos')
+    add_named_directory('latest_broadcasts')
+    add_named_directory('dossiers')
+    add_named_directory('archived_broadcasts')   
 else:
     # list video for a directory
     videos_method = getattr(provider, params[FEED_PARAM])
