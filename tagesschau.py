@@ -59,11 +59,13 @@ def addVideoContentItem(videocontent):
     url_data = { ACTION_PARAM: 'play_video',
                  URL_PARAM: urllib.quote(url) }
     url = 'plugin://' + ADDON_ID + '?' + urllib.urlencode(url_data)
-    # TODO: display duration as label2? where/how is this displayed?
+
     li = xbmcgui.ListItem(title, thumbnailImage=videocontent.image_url())
     li.setProperty('Fanart_Image', FANART)
     li.setProperty('IsPlayable', 'true')
-    li.setInfo(type="Video", infoLabels={ "Title": title, "Plot": videocontent.description })
+    li.setInfo(type="Video", infoLabels={ "Title": title,
+                                          "Plot": videocontent.description,
+                                          "Duration": str((videocontent.duration or 0)/60) })
     # li.select(True)
     ok = xbmcplugin.addDirectoryItem(int(sys.argv[1]), url=url, listitem=li, isFolder=False)
     return ok
