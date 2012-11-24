@@ -65,31 +65,24 @@ class VideoContent(object):
         if (not quality in ['S', 'M', 'L']):
             raise ValueError("quality must be one of 'S', 'M', 'L'")
         # TODO: experiment with formats of livestream
-        videourl = self._get(self._videourls, "rtsp_high")
+        videourl = self._videourls.get("rtsp_high")
         if(videourl):
             return videourl    
         if(quality == 'L' or not videourl):
-            videourl = self._get(self._videourls, "h264l")
+            videourl = self._videourls.get("h264l")
         if(quality == 'M' or not videourl):    
-            videourl = self._get(self._videourls, "h264m")
+            videourl = self._videourls.get("h264m")
         if(quality == 'S' or not videourl):    
-            videourl = self._get(self._videourls, "h264s")
+            videourl = self._videourls.get("h264s")
         return videourl
 
     def image_url(self):
         """Returns the URL String of the image for this video."""
-        imageurl = self._get(self._imageurls, "gross16x9")
+        imageurl = self._imageurls.get("gross16x9")
         if(not imageurl):
             # fallback for Wetter
-            imageurl = self._get(self._imageurls, "grossgalerie16x9")
+            imageurl = self._imageurls.get("grossgalerie16x9")
         return imageurl
-        
-    def _get(self, dic, key):
-        """Helper method that returns None if key is not found."""
-        if key in dic:
-            return dic[key]
-        else:
-            return None       
          
     def __str__(self):
         """Returns a String representation for development/testing."""
