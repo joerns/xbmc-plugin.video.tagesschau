@@ -19,13 +19,13 @@ try: import json
 except ImportError: import simplejson as json
 import urllib2, logging, datetime, re
 
-# TODO: Robustness/Unit-Tests
 logger = logging.getLogger("plugin.video.tagesschau.api")
 
 class VideoContent(object):
     """Represents a single video or broadcast.
 
     Attributes:
+        tsid: A String with the video's id
         title: A String with the video's title
         timestamp: A datetime when this video was broadcast
         imageurls: A dict mapping image variants Strings to their URL Strings
@@ -33,8 +33,9 @@ class VideoContent(object):
         duration: An integer representing the length of the video in seconds
         description: A String describing the video content
     """       
-    def __init__(self, title, timestamp, videourls=None, imageurls=None, duration=None, description=None):
+    def __init__(self, tsid, title, timestamp, videourls=None, imageurls=None, duration=None, description=None):
         """Inits VideoContent with the given values."""
+        self.tsid = tsid
         self.title = title
         # datetime
         self.timestamp = timestamp
@@ -96,7 +97,7 @@ class VideoContent(object):
             tsformatted = self.timestamp.isoformat()
         else:
             tsformatted = str(None)      
-        s = "VideoContent(title='" + self.title + "', timestamp=" + tsformatted + ", "\
+        s = "VideoContent(tsid=" + self.tsid + ", title='" + self.title + "', timestamp=" + tsformatted + ", "\
             "duration=" + str(self.duration) + ", videourl=" + str(self.video_url('L')) + ", "\
             "imageurl=" + str(self.image_url()) + ", description='" + str(self.description) + "')"
         return s.encode('utf-8', 'ignore')
@@ -106,6 +107,7 @@ class LazyVideoContent(VideoContent):
     """Represents a single video or broadcast that fetches its video urls attributes lazily.
 
     Attributes:
+        tsid: A String with the video's id
         title: A String with the video's title
         timestamp: A datetime when this video was broadcast
         imageurls: A dict mapping image variants Strings to their URL Strings
@@ -113,8 +115,8 @@ class LazyVideoContent(VideoContent):
         duration: An integer representing the length of the video in seconds
         description: A String describing the video content
     """  
-    def __init__(self, title, timestamp, detailsurl, imageurls=None, duration=None, description=None):
-        VideoContent.__init__(self, title, timestamp, None, imageurls, duration, description)
+    def __init__(self, tsid, title, timestamp, detailsurl, imageurls=None, duration=None, description=None):
+        VideoContent.__init__(self, tsid, title, timestamp, None, imageurls, duration, description)
         self.detailsurl = detailsurl
         self.detailsfetched = False
         self._parser = VideoContentParser()
@@ -141,6 +143,7 @@ class VideoContentParser(object):
     
     def parse_video(self, jsonvideo):
         """Parses the video JSON into a VideoContent object."""
+        tsid = jsonvideo["sophoraId"]
         title = jsonvideo["headline"]
         timestamp = self._parse_date(jsonvideo["broadcastDate"])
         imageurls = {}
@@ -152,10 +155,11 @@ class VideoContentParser(object):
             duration = (jsonvideo["outMilli"] - jsonvideo["inMilli"]) / 1000
         else:
             duration = None    
-        return VideoContent(title, timestamp, videourls, imageurls, duration)    
+        return VideoContent(tsid, title, timestamp, videourls, imageurls, duration)    
 
     def parse_broadcast(self, jsonbroadcast):
         """Parses the broadcast JSON into a LazyVideoContent object."""
+        tsid = jsonbroadcast["sophoraId"]
         title = jsonbroadcast["title"]
         timestamp = self._parse_date(jsonbroadcast["broadcastDate"])
         if(timestamp):
@@ -166,15 +170,16 @@ class VideoContentParser(object):
         if("topics" in jsonbroadcast):
             description = ", ".join(jsonbroadcast["topics"])
         # return LazyVideoContent that retrieves details JSON lazily
-        return LazyVideoContent(title, timestamp, details, imageurls, None, description)
+        return LazyVideoContent(tsid, title, timestamp, details, imageurls, None, description)
 
     def _parse_livestream(self, jsonlivestream):
         """Parses the livestream JSON into a VideoContent object."""
+        tsid = "livestream"
         title = "Livestream: " + jsonlivestream["title"]
         timestamp = None
         imageurls = self._parse_image_urls(jsonlivestream["images"][0]["variants"])
         videourls = self.parse_video_urls(jsonlivestream["mediadata"]) 
-        return VideoContent(title, timestamp, videourls, imageurls)
+        return VideoContent(tsid, title, timestamp, videourls, imageurls)
 
     def parse_livestreams(self, jsonlivestreams):
         """Parses the multimedia JSON into a list of VideoContent objects."""

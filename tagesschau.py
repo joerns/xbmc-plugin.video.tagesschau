@@ -21,53 +21,77 @@ import xbmc, xbmcplugin, xbmcgui, xbmcaddon
 
 from tagesschau_json_api import VideoContentProvider, JsonSource
 
+# -- Constants ----------------------------------------------
+ADDON_ID = 'plugin.video.tagesschau'
+FANART = xbmc.translatePath('special://home/addons/'+ADDON_ID+'/fanart.jpg')
+FEED_PARAM = 'feed'
+
 # -- Settings -----------------------------------------------
-settings = xbmcaddon.Addon(id='plugin.video.tagesschau')
+settings = xbmcaddon.Addon(id=ADDON_ID)
 quality_id = settings.getSetting("quality")
 quality = ['M', 'L'][int(quality_id)]
 
-fanart = xbmc.translatePath("special://home/addons/plugin.video.tagesschau/fanart.jpg")
-
 # ------------------------------------------------------------
 
-def addVideoContentDirectory(title, videos):
-    # TODO: add a new virtual directory, ideally videos are only loaded when directory is accessed
-    # not sure what using url = "plugin:// for another virtual directory" does...
-    for video in videos:
-        addVideoContentItem(video)
+def addVideoContentDirectory(title, method):
+    url = 'plugin://'+ADDON_ID+'/?' + FEED_PARAM + '=' + method;
+    # TODO: dsiplay a standard tagesschau logo for a directory?
+    li = xbmcgui.ListItem(title)
+    li.setProperty('Fanart_Image', FANART)
+    xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=url, listitem=li, isFolder=True)    
     
 def addVideoContentItem(videocontent):
     title = videocontent.title
     url = videocontent.video_url(quality)
-    # TODO: display duration as label2? 
-    li = xbmcgui.ListItem(title, iconImage=fanart, thumbnailImage=videocontent.image_url())
-    # TODO: include duration? where/how is this displayed?
-    li.setProperty('Fanart_Image', fanart)
+    # TODO: display duration as label2? where/how is this displayed?
+    li = xbmcgui.ListItem(title, thumbnailImage=videocontent.image_url())
+    li.setProperty('Fanart_Image', FANART)
     li.setInfo(type="Video", infoLabels={ "Title": title, "Plot": videocontent.description })
-    #li.select(True)
-    ok = xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=url, listitem=li)
+    # li.select(True)
+    ok = xbmcplugin.addDirectoryItem(int(sys.argv[1]), url, li)
     return ok
 
+def get_params():
+        result = {}
+        paramstring = sys.argv[2]
+        if len(paramstring) >= 2:
+                params = sys.argv[2]
+                cleanedparams = params.replace('?', '')
+                if (params[len(params) - 1] == '/'):
+                        params = params[0:len(params) - 2]
+                pairsofparams = cleanedparams.split('&')
+                for i in range(len(pairsofparams)):
+                        splitparams = {}
+                        splitparams = pairsofparams[i].split('=')
+                        if (len(splitparams)) == 2:
+                                result[splitparams[0]] = splitparams[1]                             
+        return result
+    
 # TODO: can't figure out how to set fanart for root/back folder of plugin
 # http://trac.xbmc.org/ticket/8228? 
-xbmcplugin.setPluginFanart(int(sys.argv[1]), 'special://home/addons/plugin.video.tagesschau/fanart.jpg')
+xbmcplugin.setPluginFanart(int(sys.argv[1]), 'special://home/addons/'+ADDON_ID+'/fanart.jpg')
 
+params = get_params()
 provider = VideoContentProvider(JsonSource())
-videos = provider.livestreams()
-if(len(videos) == 1):
-    addVideoContentItem(videos[0])
-videos = provider.latest_videos()
-if(len(videos) > 0):
-    addVideoContentDirectory("Aktuelle Videos", videos)
-videos = provider.latest_broadcasts()
-if(len(videos) > 0):
-    addVideoContentDirectory("Aktuelle Sendungen", videos)
-videos = provider.dossiers()
-if(len(videos) > 0):
-    addVideoContentDirectory("Dossier", videos)
-# TODO: this takes a while, but might be ok if only loaded when directory is selected
-# videos = provider.archived_broadcasts();
-# if(len(videos) > 0):
-#    addVideoContentDirectory("Sendungsarchiv", videos)
 
+if(FEED_PARAM not in params):
+    # populate root directory
+    # check whether there is a livestream
+    videos = provider.livestreams()
+    if(len(videos) == 1):
+        addVideoContentItem(videos[0])
+    # add directories for other feeds        
+    addVideoContentDirectory('Aktuelle Videos', 'latest_videos')
+    addVideoContentDirectory('Aktuelle Sendungen', 'latest_broadcasts')
+    addVideoContentDirectory('Dossier', 'dossiers')
+    addVideoContentDirectory('Sendungsarchiv', 'archived_broadcasts')   
+else:
+    # list video for a directory
+    videos_method = getattr(provider, params[FEED_PARAM])
+    videos = videos_method()
+    for video in videos:
+        addVideoContentItem(video)
+        
 xbmcplugin.endOfDirectory(int(sys.argv[1]))
+
+
