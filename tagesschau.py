@@ -49,7 +49,6 @@ def addVideoContentDirectory(title, method):
     url_data = { ACTION_PARAM: 'list_feed', 
                  FEED_PARAM: method  }
     url = 'plugin://' + ADDON_ID + '/?' + urllib.urlencode(url_data)
-    # TODO: display a standard tagesschau logo for a directory?
     li = xbmcgui.ListItem(title, thumbnailImage=DEFAULT_IMAGE_URL)
     li.setProperty('Fanart_Image', FANART)
     xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=url, listitem=li, isFolder=True)    
