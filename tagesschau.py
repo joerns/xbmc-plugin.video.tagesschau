@@ -69,7 +69,6 @@ def addVideoContentItem(videocontent):
     li.setInfo(type="Video", infoLabels={ "Title": title,
                                           "Plot": videocontent.description,
                                           "Duration": str((videocontent.duration or 0)/60) })
-    # li.select(True)
     ok = xbmcplugin.addDirectoryItem(int(sys.argv[1]), url=url, listitem=li, isFolder=False)
     return ok
 
