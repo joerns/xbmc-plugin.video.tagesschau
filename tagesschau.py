@@ -25,6 +25,8 @@ from tagesschau_json_api import VideoContentProvider, JsonSource
 ADDON_ID = 'plugin.video.tagesschau'
 FANART = xbmc.translatePath('special://home/addons/' + ADDON_ID + '/fanart.jpg')
 FEED_PARAM = 'feed'
+ACTION_PARAM = 'action'
+URL_PARAM = 'url'
 
 # -- Settings -----------------------------------------------
 settings = xbmcaddon.Addon(id=ADDON_ID)
@@ -43,7 +45,9 @@ strings = { 'latest_videos': language(30100),
 
 
 def addVideoContentDirectory(title, method):
-    url = 'plugin://' + ADDON_ID + '/?' + FEED_PARAM + '=' + method;
+    url_data = { ACTION_PARAM: 'list_feed', 
+                 FEED_PARAM: method  }
+    url = 'plugin://' + ADDON_ID + '/?' + urllib.urlencode(url_data)
     # TODO: display a standard tagesschau logo for a directory?
     li = xbmcgui.ListItem(title)
     li.setProperty('Fanart_Image', FANART)
@@ -52,8 +56,8 @@ def addVideoContentDirectory(title, method):
 def addVideoContentItem(videocontent):
     title = videocontent.title
     url = videocontent.video_url(quality)
-    url_data = { 'action': 'play_video',
-                 'url': urllib.quote(url)}
+    url_data = { ACTION_PARAM: 'play_video',
+                 URL_PARAM: urllib.quote(url) }
     url = 'plugin://' + ADDON_ID + '?' + urllib.urlencode(url_data)
     # TODO: display duration as label2? where/how is this displayed?
     li = xbmcgui.ListItem(title, thumbnailImage=videocontent.image_url())
@@ -79,11 +83,19 @@ xbmcplugin.setPluginFanart(int(sys.argv[1]), 'special://home/addons/' + ADDON_ID
 params = get_params()
 provider = VideoContentProvider(JsonSource())
 
-if params.get('action') == 'play_video':
-    url = urllib.unquote(params['url'])
+if params.get(ACTION_PARAM) == 'play_video':
+    url = urllib.unquote(params[URL_PARAM])
     listitem = xbmcgui.ListItem(path=url)
     xbmcplugin.setResolvedUrl(handle=int(sys.argv[1]), succeeded=True, listitem=listitem)
-elif FEED_PARAM not in params:
+
+elif params.get(ACTION_PARAM) == 'list_feed':
+    # list video for a directory
+    videos_method = getattr(provider, params[FEED_PARAM])
+    videos = videos_method()
+    for video in videos:
+        addVideoContentItem(video)
+
+else:
     # populate root directory
     # check whether there is a livestream
     videos = provider.livestreams()
@@ -96,12 +108,6 @@ elif FEED_PARAM not in params:
     add_named_directory('latest_broadcasts')
     add_named_directory('dossiers')
     add_named_directory('archived_broadcasts')   
-else:
-    # list video for a directory
-    videos_method = getattr(provider, params[FEED_PARAM])
-    videos = videos_method()
-    for video in videos:
-        addVideoContentItem(video)
         
 xbmcplugin.endOfDirectory(int(sys.argv[1]))
 
