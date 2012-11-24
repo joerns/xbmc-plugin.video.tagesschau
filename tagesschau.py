@@ -42,6 +42,8 @@ def addVideoContentDirectory(title, method):
     
 def addVideoContentItem(videocontent):
     title = videocontent.title
+    # TODO: support for lazy loading, by using a url pointing to the plugin and passing the video id as parameter
+    # should also speed up display for non lazy video content, see http://forum.xbmc.org/showthread.php?tid=118083
     url = videocontent.video_url(quality)
     # TODO: display duration as label2? where/how is this displayed?
     li = xbmcgui.ListItem(title, thumbnailImage=videocontent.image_url())
