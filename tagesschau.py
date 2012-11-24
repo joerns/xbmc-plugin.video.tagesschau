@@ -15,7 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import sys, urlparse
+import sys, urllib, urlparse
 
 import xbmc, xbmcplugin, xbmcgui, xbmcaddon
 
@@ -51,15 +51,17 @@ def addVideoContentDirectory(title, method):
     
 def addVideoContentItem(videocontent):
     title = videocontent.title
-    # TODO: support for lazy loading, by using a url pointing to the plugin and passing the video id as parameter
-    # should also speed up display for non lazy video content, see http://forum.xbmc.org/showthread.php?tid=118083
     url = videocontent.video_url(quality)
+    url_data = { 'action': 'play_video',
+                 'url': urllib.quote(url)}
+    url = 'plugin://' + ADDON_ID + '?' + urllib.urlencode(url_data)
     # TODO: display duration as label2? where/how is this displayed?
     li = xbmcgui.ListItem(title, thumbnailImage=videocontent.image_url())
     li.setProperty('Fanart_Image', FANART)
+    li.setProperty('IsPlayable', 'true')
     li.setInfo(type="Video", infoLabels={ "Title": title, "Plot": videocontent.description })
     # li.select(True)
-    ok = xbmcplugin.addDirectoryItem(int(sys.argv[1]), url, li)
+    ok = xbmcplugin.addDirectoryItem(int(sys.argv[1]), url=url, listitem=li, isFolder=False)
     return ok
 
 def get_params():
@@ -77,7 +79,11 @@ xbmcplugin.setPluginFanart(int(sys.argv[1]), 'special://home/addons/' + ADDON_ID
 params = get_params()
 provider = VideoContentProvider(JsonSource())
 
-if(FEED_PARAM not in params):
+if params.get('action') == 'play_video':
+    url = urllib.unquote(params['url'])
+    listitem = xbmcgui.ListItem(path=url)
+    xbmcplugin.setResolvedUrl(handle=int(sys.argv[1]), succeeded=True, listitem=listitem)
+elif FEED_PARAM not in params:
     # populate root directory
     # check whether there is a livestream
     videos = provider.livestreams()
