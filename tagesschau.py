@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2011 Jörn Schumacher 
+# Copyright 2011 Jörn Schumacher, Henning Saul 
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@ from tagesschau_json_api import VideoContentProvider, JsonSource
 
 # -- Constants ----------------------------------------------
 ADDON_ID = 'plugin.video.tagesschau'
-FANART = xbmc.translatePath('special://home/addons/'+ADDON_ID+'/fanart.jpg')
+FANART = xbmc.translatePath('special://home/addons/' + ADDON_ID + '/fanart.jpg')
 FEED_PARAM = 'feed'
 
 # -- Settings -----------------------------------------------
@@ -34,8 +34,8 @@ quality = ['M', 'L'][int(quality_id)]
 # ------------------------------------------------------------
 
 def addVideoContentDirectory(title, method):
-    url = 'plugin://'+ADDON_ID+'/?' + FEED_PARAM + '=' + method;
-    # TODO: dsiplay a standard tagesschau logo for a directory?
+    url = 'plugin://' + ADDON_ID + '/?' + FEED_PARAM + '=' + method;
+    # TODO: display a standard tagesschau logo for a directory?
     li = xbmcgui.ListItem(title)
     li.setProperty('Fanart_Image', FANART)
     xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=url, listitem=li, isFolder=True)    
@@ -69,7 +69,7 @@ def get_params():
     
 # TODO: can't figure out how to set fanart for root/back folder of plugin
 # http://trac.xbmc.org/ticket/8228? 
-xbmcplugin.setPluginFanart(int(sys.argv[1]), 'special://home/addons/'+ADDON_ID+'/fanart.jpg')
+xbmcplugin.setPluginFanart(int(sys.argv[1]), 'special://home/addons/' + ADDON_ID + '/fanart.jpg')
 
 params = get_params()
 provider = VideoContentProvider(JsonSource())
