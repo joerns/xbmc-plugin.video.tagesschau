@@ -178,9 +178,9 @@ class VideoContentParser(object):
         videos = []
         for jsonvideo in jsonlivestreams:
             # only add livestream if on the air now...
-            # if(jsonvideo["live"] == "true"):               
-            video = self._parse_livestream(jsonvideo)
-            videos.append(video)            
+            if(jsonvideo["live"] == "true"):               
+                video = self._parse_livestream(jsonvideo)
+                videos.append(video)            
         return videos
 
     def parse_video_urls(self, jsonvariants):

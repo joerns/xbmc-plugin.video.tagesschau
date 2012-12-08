@@ -3,7 +3,7 @@
     id="plugin.video.tagesschau"
     version="2.0.0"
     name="tagesschau"
-    provider-name="nevermore">
+    provider-name="Jörn Schumacher, Henning Saul">
   <requires>
     <import addon="xbmc.python" version="2.0"/>
   </requires>
