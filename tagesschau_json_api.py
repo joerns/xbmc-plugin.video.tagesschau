@@ -47,6 +47,9 @@ class VideoContent(object):
         self.duration = duration
         # description of content
         self.description = description
+    
+    def video_id(self):
+        return self.tsid
         
     def video_url(self, quality):
         """Returns the video URL String for the given quality.
@@ -115,9 +118,16 @@ class LazyVideoContent(VideoContent):
         VideoContent.__init__(self, tsid, title, timestamp, None, imageurls, duration, description)
         self.detailsurl = detailsurl
         self.detailsfetched = False
+        self._videoid = ""
         self._parser = VideoContentParser()
         self._logger = logging.getLogger("plugin.video.tagesschau.api.LazyVideoContent")
-      
+
+    def video_id(self):
+        """Overwritten to fetch details lazily."""
+        if(not self.detailsfetched):
+            self._fetch_details()
+        return self._videoid
+          
     def video_url(self, quality):
         """Overwritten to fetch videourls lazily."""
         if(not self.detailsfetched):
@@ -130,6 +140,7 @@ class LazyVideoContent(VideoContent):
         handle = urllib2.urlopen(self.detailsurl)
         jsondetails = json.load(handle)
         self._videourls = self._parser.parse_video_urls(jsondetails["fullvideo"][0]["mediadata"])       
+        self._videoid = jsondetails["fullvideo"][0]["sophoraId"]
         self.detailsfetched = True
         self._logger.info("fetched details")
 
