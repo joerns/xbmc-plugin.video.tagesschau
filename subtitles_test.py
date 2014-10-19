@@ -29,6 +29,7 @@ class SubtitlesContentHandlerTest(unittest.TestCase):
         xml.sax.parse(ttmlfile, self._parser)
         ttmlfile.close()
         # print self._parser.result()
+
        
 if __name__ == "__main__":
     unittest.main()

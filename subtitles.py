@@ -15,12 +15,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import os, urllib2, xml.sax
+import os, urllib2, logging, xml.sax
 
 # https://vimeosrtplayer.googlecode.com/svn-history/r5/VimeoSrtPlayer/bin/srt/example.srt
 
 class SubtitlesContentHandler(xml.sax.ContentHandler):
+    """ContentHandler than parses TTML XML into SRT."""
+
     def __init__(self):
+        """Inits SubtitlesContentHandler."""
         xml.sax.ContentHandler.__init__(self)
         self._result = ""
         self._count = 0
@@ -44,8 +47,13 @@ class SubtitlesContentHandler(xml.sax.ContentHandler):
         if(self._line):
             self._result += content
 
-    # 00:00:00.000
     def _startEntry(self, begin, end):
+        """Start a new entry in SRT format.
+        
+        Args:
+            begin: timestamp in format hh:mm:ss.mmm
+            end: timestamp in format hh:mm:ss.mmm            
+        """
         self._count = self._count + 1
         self._result += str(self._count)
         self._result += "\n"
@@ -55,25 +63,41 @@ class SubtitlesContentHandler(xml.sax.ContentHandler):
         self._result += "\n"
     
     def _endEntry(self):
+        """Ends the current SRT entry."""
         self._result += "\n\n"        
     
     def _startLine(self):
+        """Starts a line for current SRT entry."""
         self._line = True
         
     def _endLine(self):
+        """Ends line for current SRT entry."""
         self._line = False
    
     def _newLine(self):
+        """Appends new line for current SRT entry."""
         self._result += "\n"
                  
     def result(self):
+        """Returns the parsed result in SRT format.
+
+        Returns:
+            A single String for the parsed result in SRT format.
+        """
         return self._result 
 
 def download_subtitles(url, subtitles_dir):
-    # Download and Convert the TTAF format to srt
+    """Downloads and parses TTML subtitles from the given URL and saves it as tagesschau.de.srt in the given subtitles directory.
+    
+    If downloading or parsing fails, returns None.
+    
+    Args:
+        url: URL of TTML subtiles
+        subtitles_dir: Directory to save parsed SRT file to
 
-    print "downloading subtitles from " + url
-
+    Returns:
+        File handle of the parsed SRT, or None
+    """    
     if not os.path.exists(subtitles_dir):
         os.makedirs(subtitles_dir)
 
@@ -85,10 +109,15 @@ def download_subtitles(url, subtitles_dir):
     if not url:
         return None
     
-    # try to download TTAF subtitles
-    # TODO: error handling...
-    response = urllib2.urlopen(url)
-    source = response.read()
-    xml.sax.parse(source, SubtitlesContentHandler())
-    
-    return outfile
+    logger = logging.getLogger("plugin.video.tagesschau.subtitles")
+    try:
+        response = urllib2.urlopen(url)
+        source = response.read()
+        xml.sax.parse(source, SubtitlesContentHandler())
+        return outfile
+    except xml.sax.SAXException:
+        logger.error("Failed to parse TTML from " + url)
+        return None
+    except urllib2.HTTPError:
+        logger.error("Received HTTP error for " + url)
+        return None        
