@@ -15,13 +15,64 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import os, re, urllib2
+import os, urllib2, xml.sax
 
-# TODO: see http://www.tagesschau.de/multimedia/video/video-29351~subtitle.html
-re_subtitles = re.compile('^\s*<p.*?begin=\"(.*?)\.([0-9]+)\"\s+.*?end=\"(.*?)\.([0-9]+)\".*?>(.*?)</p>')
+# https://vimeosrtplayer.googlecode.com/svn-history/r5/VimeoSrtPlayer/bin/srt/example.srt
+
+class SubtitlesContentHandler(xml.sax.ContentHandler):
+    def __init__(self):
+        xml.sax.ContentHandler.__init__(self)
+        self._result = ""
+        self._count = 0
+        self._line = False
+ 
+    def startElement(self, name, attrs):
+        if name == "tt:p":
+            self._startEntry(attrs.get("begin"), attrs.get("end"))
+        elif name == "tt:span":
+            self._startLine()
+
+    def endElement(self, name):
+        if name == "tt:p":
+            self._endEntry()
+        elif name == "tt:span":
+            self._endLine()    
+        elif name == "tt:br":
+            self._newLine()    
+             
+    def characters(self, content):
+        if(self._line):
+            self._result += content
+
+    # 00:00:00.000
+    def _startEntry(self, begin, end):
+        self._count = self._count + 1
+        self._result += str(self._count)
+        self._result += "\n"
+        self._result += begin.replace('.', ',')
+        self._result += " --> "
+        self._result += end.replace('.', ',')
+        self._result += "\n"
+    
+    def _endEntry(self):
+        self._result += "\n\n"        
+    
+    def _startLine(self):
+        self._line = True
+        
+    def _endLine(self):
+        self._line = False
+   
+    def _newLine(self):
+        self._result += "\n"
+                 
+    def result(self):
+        return self._result 
 
 def download_subtitles(url, subtitles_dir):
     # Download and Convert the TTAF format to srt
+
+    print "downloading subtitles from " + url
 
     if not os.path.exists(subtitles_dir):
         os.makedirs(subtitles_dir)
@@ -37,52 +88,7 @@ def download_subtitles(url, subtitles_dir):
     # try to download TTAF subtitles
     # TODO: error handling...
     response = urllib2.urlopen(url)
-    txt = response.read()
+    source = response.read()
+    xml.sax.parse(source, SubtitlesContentHandler())
     
-    fw = open(outfile, 'w')
-
-    i=0
-    prev = None
-
-    # convert line by line
-    for line in txt.split('\n'):
-        entry = None
-        m = re_subtitles.match(line)
-        if m:
-            
-            start_mil = "%s000" % m.group(2) # pad out to ensure 3 digits
-            end_mil   = "%s000" % m.group(4)
-
-            ma = {'start'     : m.group(1),
-                  'start_mil' : start_mil[:3],
-                  'end'       : m.group(3),
-                  'end_mil'   : end_mil[:3],
-                  'text'      : m.group(5)}
-
-            ma['text'] = ma['text'].replace('&amp;', '&')
-            ma['text'] = ma['text'].replace('&gt;', '>')
-            ma['text'] = ma['text'].replace('&lt;', '<')
-            ma['text'] = ma['text'].replace('<br />', '\n')
-            ma['text'] = ma['text'].replace('<br/>', '\n')
-            ma['text'] = re.sub('<.*?>', '', ma['text'])
-            ma['text'] = re.sub('&#[0-9]+;', '', ma['text'])
-
-            if not prev:
-                # first match - do nothing wait till next line
-                prev = ma
-                continue
-
-            if prev['text'] == ma['text']:
-                # current line = previous line then start a sequence to be collapsed
-                prev['end'] = ma['end']
-                prev['end_mil'] = ma['end_mil']
-            else:
-                i += 1
-                entry = "%d\n%s,%s --> %s,%s\n%s\n\n" % (i, prev['start'], prev['start_mil'], prev['end'], prev['end_mil'], prev['text'])
-                prev = ma
-        elif prev:
-            i += 1
-            entry = "%d\n%s,%s --> %s,%s\n%s\n\n" % (i, prev['start'], prev['start_mil'], prev['end'], prev['end_mil'], prev['text'])
-        if entry: fw.write(entry)
-    fw.close()
     return outfile
