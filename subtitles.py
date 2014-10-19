@@ -15,7 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import os, urllib2, logging, xml.sax
+import os, urllib2, codecs, logging, xml.sax
 
 # https://vimeosrtplayer.googlecode.com/svn-history/r5/VimeoSrtPlayer/bin/srt/example.srt
 
@@ -101,23 +101,27 @@ def download_subtitles(url, subtitles_dir):
     if not os.path.exists(subtitles_dir):
         os.makedirs(subtitles_dir)
 
-    outfile = os.path.join(subtitles_dir, 'tagesschau.de.srt')
+    path = os.path.join(subtitles_dir, 'tagesschau.de.srt')
 
-    if (os.path.exists(outfile)):
-        os.remove(outfile)
+    if (os.path.exists(path)):
+        os.remove(path)
 
     if not url:
         return None
     
     logger = logging.getLogger("plugin.video.tagesschau.subtitles")
     try:
-        response = urllib2.urlopen(url)
-        source = response.read()
-        xml.sax.parse(source, SubtitlesContentHandler())
-        return outfile
+        source = urllib2.urlopen(url)
+        handler = SubtitlesContentHandler()
+        xml.sax.parse(source, handler)
+        outfile = codecs.open(path, "w", "utf-8-sig")
+        outfile.write(handler.result())
+        outfile.close()
+        return path
     except xml.sax.SAXException:
         logger.error("Failed to parse TTML from " + url)
         return None
     except urllib2.HTTPError:
-        logger.error("Received HTTP error for " + url)
+        # the only way to find out if we have subtitles is to try to retrieve them
+        logger.debug(msg)("Received HTTP error for " + url)
         return None        
