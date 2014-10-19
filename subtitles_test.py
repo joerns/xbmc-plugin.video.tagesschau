@@ -25,9 +25,10 @@ class SubtitlesContentHandlerTest(unittest.TestCase):
         self._parser = SubtitlesContentHandler()
 
     def test_parse_subtitles(self):
-        source = open('resources/test/subtitles_in.xml')
-        xml.sax.parse(source, self._parser)
-        print self._parser.result()
+        ttmlfile = open('resources/test/subtitles_ttml.xml')
+        xml.sax.parse(ttmlfile, self._parser)
+        ttmlfile.close()
+        # print self._parser.result()
        
 if __name__ == "__main__":
     unittest.main()
