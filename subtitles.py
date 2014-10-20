@@ -123,5 +123,5 @@ def download_subtitles(url, subtitles_dir):
         return None
     except urllib2.HTTPError:
         # the only way to find out if we have subtitles is to try to retrieve them
-        logger.debug(msg)("Received HTTP error for " + url)
+        logger.debug("Received HTTP error for " + url)
         return None        
