@@ -38,7 +38,7 @@ logger = logging.getLogger("plugin.video.tagesschau.api")
 # -- Settings -----------------------------------------------
 addon = xbmcaddon.Addon(id=ADDON_ID)
 quality_id = addon.getSetting('quality')
-quality = ['M', 'L'][int(quality_id)]
+quality = ['M', 'L', 'X'][int(quality_id)]
 
 # -- I18n ---------------------------------------------------
 language = addon.getLocalizedString

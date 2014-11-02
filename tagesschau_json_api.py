@@ -57,7 +57,7 @@ class VideoContent(object):
         Falls back to lower qualities if no corresponding video is found.
         
         Args:
-            quality: One of 'S', 'M' or 'L'
+            quality: One of 'S', 'M', 'L' or 'X'
 
         Returns:
             A URL String for the given quality or None if no URL could be found.
@@ -65,9 +65,13 @@ class VideoContent(object):
         Raises:
             ValueError: If the given quality is invalid
         """
-        if (not quality in ['S', 'M', 'L']):
-            raise ValueError("quality must be one of 'S', 'M', 'L'")
+        if (not quality in ['S', 'M', 'L', 'X']):
+            raise ValueError("quality must be one of 'S', 'M', 'L', 'X'")
 
+        if quality == 'X':
+            videourl = self._videourls.get("h264xl")
+            if not videourl:
+                videourl = self._videourls.get("http_tab_high")
         if quality == 'L':
             videourl = self._videourls.get("h264l")
             if not videourl:
