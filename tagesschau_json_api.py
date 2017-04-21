@@ -181,7 +181,11 @@ class VideoContentParser(object):
         if(len(jsonvideo["images"]) > 0):
             imageurls = self._parse_image_urls(jsonvideo["images"][0]["variants"])
         videourls = self.parse_video_urls(jsonvideo["mediadata"])
-        print videourls
+        if "h264l" in videourls.keys():
+            url = videourls['h264l'].replace("webl", "webxl")
+            videourls['h264xl']= url
+        #print videourls
+        
         # calculate duration using outMilli and inMilli, duration is not set in JSON
         if("inMilli" in jsonvideo and "outMilli" in jsonvideo):
             duration = (jsonvideo["outMilli"] - jsonvideo["inMilli"]) / 1000
