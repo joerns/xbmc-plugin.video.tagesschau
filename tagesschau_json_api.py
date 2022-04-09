@@ -141,7 +141,7 @@ class LazyVideoContent(VideoContent):
     def _fetch_details(self):
         """Fetches videourls from detailsurl."""
         self._logger.info("fetching details from " + self.detailsurl)
-        handle = urllib2.urlopen(self.detailsurl)
+        handle = urllib2.urlopen(self.detailsurl.replace("http:/","https:/"))
         jsondetails = json.load(handle)
         self._videourls = self._parser.parse_video_urls(jsondetails["fullvideo"][0]["mediadata"])       
         self._videoid = jsondetails["fullvideo"][0]["sophoraId"]
@@ -357,27 +357,27 @@ class JsonSource(object):
     
     def livestreams(self):
         """Returns the parsed JSON structure for livestreams."""
-        handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/video/ondemand100~_type-video.json")
+        handle = urllib2.urlopen("https://www.tagesschau.de/api/multimedia/video/ondemand100~_type-video.json")
         return json.loads(handle.read())
 
     def latest_videos(self):
         """Returns the parsed JSON structure for the latest videos."""        
-        handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/video/ondemand100~_type-video.json")
+        handle = urllib2.urlopen("https://www.tagesschau.de/api/multimedia/video/ondemand100~_type-video.json")
         return json.loads(handle.read())
 
     def dossiers(self):
         """Returns the parsed JSON structure for the dossiers."""        
-        handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/video/ondemanddossier100.json")
+        handle = urllib2.urlopen("https://www.tagesschau.de/api/multimedia/video/ondemanddossier100.json")
         return json.loads(handle.read())
 
     def latest_broadcasts(self):
         """Returns the parsed JSON structure for the latest broadcasts."""        
-        handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/sendung/letztesendungen100.json")
+        handle = urllib2.urlopen("https://www.tagesschau.de/api/multimedia/sendung/letztesendungen100.json")
         return json.loads(handle.read())
 
     def archived_broadcasts(self):
         """Returns the parsed JSON structure for the archived broadcasts."""        
-        handle = urllib2.urlopen("http://www.tagesschau.de/api/multimedia/sendung/letztesendungen100~_week-true.json")
+        handle = urllib2.urlopen("https://www.tagesschau.de/api/multimedia/sendung/letztesendungen100~_week-true.json")
         return json.loads(handle.read())
         
 if __name__ == "__main__":

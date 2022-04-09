@@ -30,7 +30,7 @@ FEED_PARAM = 'feed'
 ID_PARAM = 'tsid'
 URL_PARAM = 'url'
 
-DEFAULT_IMAGE_URL = 'http://miss.tagesschau.de/image/sendung/ard_portal_vorspann_ts.jpg'
+DEFAULT_IMAGE_URL = 'https://miss.tagesschau.de/image/sendung/ard_portal_vorspann_ts.jpg'
 
 # -- Settings -----------------------------------------------
 logger = logging.getLogger("plugin.video.tagesschau.api")
@@ -133,7 +133,7 @@ if params.get(ACTION_PARAM) == 'play_video':
                 # try to download and and convert subtitles to local SRT file
                 # as of October 2014, only subtiles for complete "tagesschau" broadcasts are available
                 # subtitles_url = 'http://www.tagesschau.de/multimedia/video/video-29351~subtitle.html'
-                subtitles_url = 'http://www.tagesschau.de/multimedia/video/' + str(video.video_id()) + '~subtitle.html'        
+                subtitles_url = 'https://www.tagesschau.de/multimedia/video/' + str(video.video_id()) + '~subtitle.html'        
                 subtitles_file = download_subtitles(subtitles_url, subtitles_dir)
                 
     listitem = xbmcgui.ListItem(path=url)
